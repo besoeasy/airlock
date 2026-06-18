@@ -9,12 +9,12 @@ RAW_URL="https://cdn.jsdelivr.net/gh/besoeasy/airlock@main/airlock"
 RAW_VER_URL="https://cdn.jsdelivr.net/gh/besoeasy/airlock@main/version.txt"
 INSTALL_PATH="/usr/local/bin/airlock"
 
-declare -A IMAGES
+declare -A COMMANDS
 
-IMAGES[debian]="debian:stable"
-IMAGES[alpine]="alpine:latest"
-IMAGES[node]="node:lts"
-IMAGES[bun]="oven/bun:latest"
+COMMANDS[debian]='run -it --rm -v "$PWD:/workspace" -w /workspace --network host --user $(id -u):$(id -g) -e HOME=/workspace debian:stable bash'
+COMMANDS[alpine]='run -it --rm -v "$PWD:/workspace" -w /workspace --network host --user $(id -u):$(id -g) -e HOME=/workspace alpine:latest sh'
+COMMANDS[node]='run -it --rm -v "$PWD:/workspace" -w /workspace --network host --user $(id -u):$(id -g) -e npm_config_cache=/workspace/.npm-cache -e NODE_ENV=development node:lts bash'
+COMMANDS[bun]='run -it --rm -v "$PWD:/workspace" -w /workspace --network host --user $(id -u):$(id -g) -e BUN_INSTALL_CACHE_DIR=/workspace/.bun-cache oven/bun:latest bash'
 
 CONFIG_IMAGE=""
 CONFIG_COMMAND=""
@@ -53,95 +53,23 @@ done < .airlock
 return 0
 }
 
-resolve_image_ref() {
-local spec="$1"
+format_command() {
+local runtime="$1"
+local run_cmd="$2"
 
-if [ -n "${IMAGES[$spec]:-}" ]; then
-    echo "${IMAGES[$spec]}"
-    return
-fi
-
-if [[ "$spec" == *:* || "$spec" == */* ]]; then
-    echo "$spec"
-    return
-fi
-
-echo "Unknown image: $spec"
-echo "Run: airlock help"
-exit 1
+echo "$runtime $run_cmd"
 }
 
-resolve_profile() {
-local spec="$1"
-local key
+run_command() {
+local runtime="$1"
+local run_cmd="$2"
+local command="${3:-}"
 
-if [ -n "${IMAGES[$spec]:-}" ]; then
-    echo "$spec"
-    return
+if [ -n "$command" ]; then
+    eval "$runtime $run_cmd -c \"\$command\""
+else
+    eval "$runtime $run_cmd"
 fi
-
-for key in "${!IMAGES[@]}"; do
-    if [ "${IMAGES[$key]}" = "$spec" ]; then
-        echo "$key"
-        return
-    fi
-done
-
-echo "generic"
-}
-
-image_shell() {
-case "$1" in
-    alpine)
-        echo "sh"
-        ;;
-    *)
-        echo "bash"
-        ;;
-esac
-}
-
-image_run_args() {
-local profile="$1"
-local -n args="$2"
-
-case "$profile" in
-    debian|alpine)
-        args=(
-            run -it --rm
-            -v "$PWD:/workspace"
-            -w /workspace
-            -e HOME=/workspace
-        )
-        ;;
-    node)
-        args=(
-            run -it --rm
-            -v "$PWD:/workspace"
-            -w /workspace
-            --user "$(id -u):$(id -g)"
-            -e npm_config_cache=/workspace/.npm-cache
-            -e NODE_ENV=development
-        )
-        ;;
-    bun)
-        args=(
-            run -it --rm
-            -v "$PWD:/workspace"
-            -w /workspace
-            --user "$(id -u):$(id -g)"
-            -e BUN_INSTALL_CACHE_DIR=/workspace/.bun-cache
-        )
-        ;;
-    *)
-        args=(
-            run -it --rm
-            -v "$PWD:/workspace"
-            -w /workspace
-            --user "$(id -u):$(id -g)"
-        )
-        ;;
-esac
 }
 
 banner() {
@@ -174,35 +102,22 @@ exit 1
 
 }
 
-launch_image() {
-detect_container_runtime
-
-local profile="$1"
-local image="$2"
-local command="${3:-}"
-local shell
-local -a run_args
-
-shell=$(image_shell "$profile")
-image_run_args "$profile" run_args
-
-if [ -n "$command" ]; then
-    "$CONTAINER_RUNTIME" "${run_args[@]}" "$image" "$shell" -c "$command"
-else
-    "$CONTAINER_RUNTIME" "${run_args[@]}" "$image" "$shell"
-fi
-
-}
-
 launch_named() {
 local name="$1"
+local command="${2:-}"
 
-launch_image "$name" "${IMAGES[$name]}"
+detect_container_runtime
+
+if [ -z "${COMMANDS[$name]:-}" ]; then
+    echo "Unknown image: $name"
+    echo "Run: airlock help"
+    exit 1
+fi
+
+run_command "$CONTAINER_RUNTIME" "${COMMANDS[$name]}" "$command"
 }
 
 launch_from_config() {
-local profile image
-
 load_airlock_config || {
     echo ".airlock not found."
     exit 1
@@ -213,9 +128,7 @@ if [ -z "$CONFIG_IMAGE" ]; then
     exit 1
 fi
 
-image=$(resolve_image_ref "$CONFIG_IMAGE")
-profile=$(resolve_profile "$CONFIG_IMAGE")
-launch_image "$profile" "$image" "$CONFIG_COMMAND"
+launch_named "$CONFIG_IMAGE" "$CONFIG_COMMAND"
 }
 
 read_version() {
@@ -332,6 +245,8 @@ echo "Airlock installed ($version)."
 }
 
 show_help() {
+local name
+
 echo
 echo "Repository:"
 echo "$REPO_URL"
@@ -344,6 +259,11 @@ echo "  airlock debian"
 echo "  airlock alpine"
 echo "  airlock node"
 echo "  airlock bun"
+echo
+echo "Commands (docker):"
+for name in debian alpine node bun; do
+    format_command docker "${COMMANDS[$name]}"
+done
 echo
 echo "Project config (.airlock):"
 echo "  image=node"

@@ -83,6 +83,17 @@ Your current directory is mounted at `/workspace`. Work inside the container, ex
 | `node` | `node:lts` |
 | `bun` | `oven/bun:latest` |
 
+Each alias runs an equivalent one-liner:
+
+```bash
+docker run -it --rm -v "$PWD:/workspace" -w /workspace --network host --user $(id -u):$(id -g) -e HOME=/workspace debian:stable bash
+docker run -it --rm -v "$PWD:/workspace" -w /workspace --network host --user $(id -u):$(id -g) -e HOME=/workspace alpine:latest sh
+docker run -it --rm -v "$PWD:/workspace" -w /workspace --network host --user $(id -u):$(id -g) -e npm_config_cache=/workspace/.npm-cache -e NODE_ENV=development node:lts bash
+docker run -it --rm -v "$PWD:/workspace" -w /workspace --network host --user $(id -u):$(id -g) -e BUN_INSTALL_CACHE_DIR=/workspace/.bun-cache oven/bun:latest bash
+```
+
+Run `airlock help` to print the current commands.
+
 ## Project config
 
 Add a `.airlock` file to pin defaults for a repo:
@@ -94,7 +105,7 @@ command=npm test
 
 | Key | Description |
 |-----|-------------|
-| `image` | Alias from the table above, or a full reference (`node:22`, `ghcr.io/org/image`) |
+| `image` | Alias from the table above (`debian`, `alpine`, `node`, `bun`) |
 | `command` | Optional command to run instead of an interactive shell |
 
 Running `airlock` with no arguments picks up `.airlock` automatically.
