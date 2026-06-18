@@ -2,7 +2,7 @@
 
 set -e
 
-VERSION="0.2.0"
+VERSION="0.0.1"
 
 REPO_URL="https://github.com/besoeasy/airlock"
 RAW_URL="https://raw.githubusercontent.com/besoeasy/airlock/main/airlock"
