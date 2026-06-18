@@ -220,6 +220,7 @@ cat <<'EOF'
 
 Secure Development Sandbox
 EOF
+echo "$REPO_URL"
 }
 
 detect_container_runtime() {
