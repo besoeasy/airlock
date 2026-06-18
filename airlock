@@ -1,115 +1,256 @@
 #!/usr/bin/env bash
+
 set -e
 
-VERSION="0.1.0"
+VERSION="0.2.0"
+
 REPO_URL="https://github.com/besoeasy/airlock"
 RAW_URL="https://raw.githubusercontent.com/besoeasy/airlock/main/airlock"
 
-banner() {
-cat <<EOF
-    _    _      _            _
-   / \  (_)_ __| | ___   ___| | __
-  / _ \ | | '__| |/ _ \ / __| |/ /
- / ___ \| | |  | | (_) | (__|   <
-/_/   \_\_|_|  |_|\___/ \___|_|\_\
+declare -A IMAGES
 
-Secure Dependency Sandbox
+IMAGES[debian]="debian:stable"
+IMAGES[alpine]="alpine:latest"
+IMAGES[node]="node:lts"
+IMAGES[python]="python:3"
+IMAGES[go]="golang:latest"
+IMAGES[bun]="oven/bun:latest"
+IMAGES[rust]="rust:latest"
+IMAGES[java]="eclipse-temurin:21"
+IMAGES[ubuntu]="ubuntu:24.04"
+IMAGES[arch]="archlinux:latest"
+IMAGES[fedora]="fedora:latest"
+IMAGES[deno]="denoland/deno:latest"
+IMAGES[zig]="ziglang/zig:latest"
+IMAGES[nix]="nixos/nix:latest"
+
+banner() {
+cat <<'EOF'
+_    _      _            _
+/ \  (*)* **| | ___   ***| | __
+/ _ \ | | '**| |/ _ \ / __| |/ /
+/ ___ | | |  | | (*) | (**|   <
+/*/   __|*|  |*|_**/ _**|*|_\
+
+Secure Development Sandbox
 EOF
 }
 
 detect_container_runtime() {
-    if command -v docker >/dev/null 2>&1; then
-        CONTAINER_RUNTIME="docker"
-        return
-    fi
+if command -v docker >/dev/null 2>&1; then
+CONTAINER_RUNTIME="docker"
+return
+fi
 
-    if command -v podman >/dev/null 2>&1; then
-        CONTAINER_RUNTIME="podman"
-        return
-    fi
+```
+if command -v podman >/dev/null 2>&1; then
+    CONTAINER_RUNTIME="podman"
+    return
+fi
 
-    echo "Neither Docker nor Podman is installed."
-    exit 1
+echo
+echo "Docker or Podman is required."
+exit 1
+```
+
 }
 
-container_shell() {
-    detect_container_runtime
-    "$CONTAINER_RUNTIME" run -it --rm \
-        -v "$PWD:/workspace" \
-        -w /workspace \
-        --user "$(id -u):$(id -g)" \
-        docker.io/library/node:lts bash
+detect_shell() {
+local image="$1"
+
+```
+case "$image" in
+    alpine:*|archlinux:*|fedora:*|nixos/*)
+        echo "sh"
+        ;;
+    *)
+        echo "bash"
+        ;;
+esac
+```
+
 }
 
-run_node() {
-    detect_container_runtime
-    "$CONTAINER_RUNTIME" run -it --rm \
-        -v "$PWD:/workspace" \
-        -w /workspace \
-        --user "$(id -u):$(id -g)" \
-        docker.io/library/node:lts bash -c "$*"
+launch_image() {
+detect_container_runtime
+
+```
+local image="$1"
+local shell
+
+shell=$(detect_shell "$image")
+
+"$CONTAINER_RUNTIME" run -it --rm \
+    -v "$PWD:/workspace" \
+    -w /workspace \
+    --user "$(id -u):$(id -g)" \
+    "$image" \
+    "$shell"
+```
+
 }
 
 update_airlock() {
-    TMP_FILE=$(mktemp)
-    curl -fsSL "$RAW_URL" -o "$TMP_FILE"
-    chmod +x "$TMP_FILE"
+echo "Updating Airlock..."
 
-    if [ -w /usr/local/bin/airlock ]; then
-        mv "$TMP_FILE" /usr/local/bin/airlock
-    else
-        sudo mv "$TMP_FILE" /usr/local/bin/airlock
-    fi
+```
+TMP_FILE=$(mktemp)
 
-    echo "Airlock updated."
+curl -fsSL "$RAW_URL" -o "$TMP_FILE"
+
+chmod +x "$TMP_FILE"
+
+if [ -w /usr/local/bin/airlock ]; then
+    mv "$TMP_FILE" /usr/local/bin/airlock
+else
+    sudo mv "$TMP_FILE" /usr/local/bin/airlock
+fi
+
+echo "Airlock updated."
+```
+
 }
 
-help_airlock() {
-    echo "Repository: $REPO_URL"
+show_help() {
+echo
+echo "Repository:"
+echo "$REPO_URL"
+echo
+echo "Usage:"
+echo "  airlock"
+echo "  airlock debian"
+echo "  airlock alpine"
+echo "  airlock node"
+echo "  airlock python"
+echo "  airlock go"
+echo "  airlock rust"
+echo "  airlock java"
+echo "  airlock ubuntu"
+echo "  airlock arch"
+echo "  airlock fedora"
+echo "  airlock deno"
+echo "  airlock zig"
+echo "  airlock nix"
+echo
 }
 
 menu() {
 while true; do
-    clear
-    banner
-    detect_container_runtime
-    echo
-    echo "Runtime: $CONTAINER_RUNTIME"
-    echo
-    echo "1) npm install"
-    echo "2) pnpm install"
-    echo "3) yarn install"
-    echo "4) bun install"
-    echo "5) shell"
-    echo "6) update"
-    echo "7) help"
-    echo "8) version"
-    echo "9) exit"
-    read -rp "Select option: " choice
 
-    case "$choice" in
-        1) run_node "npm install" ;;
-        2) run_node "npm install -g pnpm && pnpm install" ;;
-        3) run_node "npm install -g yarn && yarn install" ;;
-        4) run_node "npm install -g bun && bun install" ;;
-        5) container_shell ;;
-        6) update_airlock ;;
-        7) help_airlock ;;
-        8) echo "$VERSION" ;;
-        9) exit 0 ;;
-    esac
+clear
+
+banner
+
+detect_container_runtime
+
+echo
+echo "Runtime: $CONTAINER_RUNTIME"
+echo
+
+echo "1) Debian"
+echo "2) Alpine"
+echo "3) Node"
+echo "4) Python"
+echo "5) Go"
+echo "6) Bun"
+echo "7) Rust"
+echo "8) Java"
+echo "9) Ubuntu"
+echo "10) Arch"
+echo "11) Fedora"
+echo "12) Deno"
+echo "13) Zig"
+echo "14) Nix"
+echo "15) Update"
+echo "16) Help"
+echo "17) Version"
+echo "18) Exit"
+echo
+
+read -rp "Select option: " choice
+
+case "$choice" in
+1) launch_image "${IMAGES[debian]}" ;;
+2) launch_image "${IMAGES[alpine]}" ;;
+3) launch_image "${IMAGES[node]}" ;;
+4) launch_image "${IMAGES[python]}" ;;
+5) launch_image "${IMAGES[go]}" ;;
+6) launch_image "${IMAGES[bun]}" ;;
+7) launch_image "${IMAGES[rust]}" ;;
+8) launch_image "${IMAGES[java]}" ;;
+9) launch_image "${IMAGES[ubuntu]}" ;;
+10) launch_image "${IMAGES[arch]}" ;;
+11) launch_image "${IMAGES[fedora]}" ;;
+12) launch_image "${IMAGES[deno]}" ;;
+13) launch_image "${IMAGES[zig]}" ;;
+14) launch_image "${IMAGES[nix]}" ;;
+15) update_airlock ;;
+16) show_help ;;
+17) echo "$VERSION" ;;
+18) exit 0 ;;
+esac
+
 done
 }
 
 case "${1:-}" in
-    "") menu ;;
-    update) update_airlock ;;
-    help) help_airlock ;;
-    version) echo "$VERSION" ;;
-    shell) container_shell ;;
-    npm) shift; run_node "npm $*" ;;
-    pnpm) shift; run_node "npm install -g pnpm && pnpm $*" ;;
-    yarn) shift; run_node "npm install -g yarn && yarn $*" ;;
-    bun) shift; run_node "npm install -g bun && bun $*" ;;
-    *) echo "Unknown command"; exit 1 ;;
+"")
+menu
+;;
+update)
+update_airlock
+;;
+help)
+show_help
+;;
+version)
+echo "$VERSION"
+;;
+debian)
+launch_image "${IMAGES[debian]}"
+;;
+alpine)
+launch_image "${IMAGES[alpine]}"
+;;
+node)
+launch_image "${IMAGES[node]}"
+;;
+python)
+launch_image "${IMAGES[python]}"
+;;
+go)
+launch_image "${IMAGES[go]}"
+;;
+bun)
+launch_image "${IMAGES[bun]}"
+;;
+rust)
+launch_image "${IMAGES[rust]}"
+;;
+java)
+launch_image "${IMAGES[java]}"
+;;
+ubuntu)
+launch_image "${IMAGES[ubuntu]}"
+;;
+arch)
+launch_image "${IMAGES[arch]}"
+;;
+fedora)
+launch_image "${IMAGES[fedora]}"
+;;
+deno)
+launch_image "${IMAGES[deno]}"
+;;
+zig)
+launch_image "${IMAGES[zig]}"
+;;
+nix)
+launch_image "${IMAGES[nix]}"
+;;
+*)
+echo "Unknown command."
+echo "Run: airlock help"
+exit 1
+;;
 esac
