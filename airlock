@@ -113,20 +113,12 @@ local profile="$1"
 local -n args="$2"
 
 case "$profile" in
-    debian|ubuntu|fedora|arch)
+    debian|ubuntu|fedora|arch|alpine)
         args=(
             run -it --rm
             -v "$PWD:/workspace"
             -w /workspace
-            --user "$(id -u):$(id -g)"
-        )
-        ;;
-    alpine)
-        args=(
-            run -it --rm
-            -v "$PWD:/workspace"
-            -w /workspace
-            --user "$(id -u):$(id -g)"
+            -e HOME=/workspace
         )
         ;;
     node)
@@ -218,11 +210,11 @@ esac
 
 banner() {
 cat <<'EOF'
-_    _      _            _
-/ \  (*)* **| | ___   ***| | __
-/ _ \ | | '**| |/ _ \ / __| |/ /
-/ ___ | | |  | | (*) | (**|   <
-/*/   __|*|  |*|_**/ _**|*|_\
+    _    _      _            _
+   / \  (_)_ __| | ___   ___| | __
+  / _ \ | | '__| |/ _ \ / __| |/ /
+ / ___ \| | |  | | (_) | (__|   <
+/_/   \_\_|_|  |_|\___/ \___|_|\_\
 
 Secure Development Sandbox
 EOF
