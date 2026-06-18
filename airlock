@@ -22,7 +22,6 @@ IMAGES[arch]="archlinux:latest"
 IMAGES[fedora]="fedora:latest"
 IMAGES[deno]="denoland/deno:latest"
 IMAGES[zig]="ziglang/zig:latest"
-IMAGES[nix]="nixos/nix:latest"
 
 CONFIG_IMAGE=""
 CONFIG_COMMAND=""
@@ -100,7 +99,7 @@ echo "generic"
 
 image_shell() {
 case "$1" in
-    alpine|nix)
+    alpine)
         echo "sh"
         ;;
     *)
@@ -204,15 +203,6 @@ case "$profile" in
             -w /workspace
             --user "$(id -u):$(id -g)"
             -e XDG_CACHE_HOME=/workspace/.cache
-        )
-        ;;
-    nix)
-        args=(
-            run -it --rm
-            --security-opt seccomp=unconfined
-            -v "$PWD:/workspace"
-            -w /workspace
-            -e 'NIX_CONFIG=experimental-features = nix-command flakes'
         )
         ;;
     *)
@@ -353,7 +343,6 @@ echo "  airlock arch"
 echo "  airlock fedora"
 echo "  airlock deno"
 echo "  airlock zig"
-echo "  airlock nix"
 echo
 echo "Project config (.airlock):"
 echo "  image=node"
@@ -389,11 +378,10 @@ echo "10) Arch"
 echo "11) Fedora"
 echo "12) Deno"
 echo "13) Zig"
-echo "14) Nix"
-echo "15) Update"
-echo "16) Help"
-echo "17) Version"
-echo "18) Exit"
+echo "14) Update"
+echo "15) Help"
+echo "16) Version"
+echo "17) Exit"
 echo
 
 read -rp "Select option: " choice
@@ -412,11 +400,10 @@ case "$choice" in
 11) launch_named fedora ;;
 12) launch_named deno ;;
 13) launch_named zig ;;
-14) launch_named nix ;;
-15) update_airlock ;;
-16) show_help ;;
-17) echo "$VERSION" ;;
-18) exit 0 ;;
+14) update_airlock ;;
+15) show_help ;;
+16) echo "$VERSION" ;;
+17) exit 0 ;;
 esac
 
 done
@@ -477,9 +464,6 @@ launch_named deno
 ;;
 zig)
 launch_named zig
-;;
-nix)
-launch_named nix
 ;;
 *)
 echo "Unknown command."

@@ -60,7 +60,6 @@ airlock arch
 airlock fedora
 airlock deno
 airlock zig
-airlock nix
 ```
 
 ## Project config
