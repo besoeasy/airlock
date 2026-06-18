@@ -26,6 +26,8 @@ The goal is simple:
 
 ## Install
 
+Requires Docker or Podman. The install script installs Airlock and, if neither runtime is present, installs Podman from your distro's official repositories (Debian, Ubuntu, Fedora, Arch, openSUSE, and others).
+
 ```bash
 curl -fsSL https://raw.githubusercontent.com/besoeasy/airlock/main/install.sh | bash
 ```
