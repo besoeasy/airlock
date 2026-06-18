@@ -5,8 +5,8 @@ set -e
 VERSION="0.0.3"
 
 REPO_URL="https://github.com/besoeasy/airlock"
-RAW_URL="https://raw.githubusercontent.com/besoeasy/airlock/main/airlock"
-RAW_VER_URL="https://raw.githubusercontent.com/besoeasy/airlock/main/ver"
+RAW_URL="https://cdn.jsdelivr.net/gh/besoeasy/airlock@main/airlock"
+RAW_VER_URL="https://cdn.jsdelivr.net/gh/besoeasy/airlock@main/version.txt"
 INSTALL_PATH="/usr/local/bin/airlock"
 
 declare -A IMAGES

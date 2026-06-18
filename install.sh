@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 set -e
 
-AIRLOCK_URL="https://raw.githubusercontent.com/besoeasy/airlock/main/airlock"
+AIRLOCK_URL="https://cdn.jsdelivr.net/gh/besoeasy/airlock@main/airlock"
 INSTALL_PATH="/usr/local/bin/airlock"
 
 has_container_runtime() {
