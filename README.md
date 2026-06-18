@@ -32,6 +32,8 @@ The goal is simple:
 
 Requires Docker or Podman. The install script installs Airlock and, if neither runtime is present, installs Podman from your distro's official repositories (Debian, Ubuntu, Fedora, Arch, openSUSE, and others).
 
+Airlock checks GitHub for new releases on startup and updates itself automatically. Bump the version in `ver` when publishing a release.
+
 ```bash
 curl -fsSL https://raw.githubusercontent.com/besoeasy/airlock/main/install.sh | bash
 ```

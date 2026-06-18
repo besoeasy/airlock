@@ -2,10 +2,12 @@
 
 set -e
 
-VERSION="0.0.2"
+VERSION="0.0.3"
 
 REPO_URL="https://github.com/besoeasy/airlock"
 RAW_URL="https://raw.githubusercontent.com/besoeasy/airlock/main/airlock"
+RAW_VER_URL="https://raw.githubusercontent.com/besoeasy/airlock/main/ver"
+INSTALL_PATH="/usr/local/bin/airlock"
 
 declare -A IMAGES
 
@@ -287,7 +289,7 @@ grep '^VERSION=' "$1" | head -n1 | cut -d= -f2- | tr -d '"'
 
 install_binary() {
 local src="$1"
-local dest="/usr/local/bin/airlock"
+local dest="$INSTALL_PATH"
 
 if install -m 755 "$src" "$dest" 2>/dev/null; then
     rm -f "$src"
@@ -306,18 +308,69 @@ echo "Run: sudo install -m 755 $src $dest"
 exit 1
 }
 
-update_airlock() {
+download_and_install_airlock() {
 local version
 local tmp_file
-
-echo "Updating Airlock from GitHub..."
 
 tmp_file=$(mktemp)
 curl -fsSL "$RAW_URL" -o "$tmp_file"
 chmod +x "$tmp_file"
 version=$(read_version "$tmp_file")
 install_binary "$tmp_file"
+echo "$version"
+}
 
+check_for_update() {
+local remote_version
+local tmp_ver
+local installed_path
+
+case "${1:-}" in
+    update) return 0 ;;
+esac
+
+if [ "${AIRLOCK_SKIP_UPDATE:-}" = "1" ]; then
+    return 0
+fi
+
+installed_path=$(readlink -f "$INSTALL_PATH" 2>/dev/null || echo "$INSTALL_PATH")
+if [ "$(readlink -f "$0" 2>/dev/null || echo "$0")" != "$installed_path" ]; then
+    return 0
+fi
+
+tmp_ver=$(mktemp)
+if ! curl -fsSL --max-time 10 "$RAW_VER_URL" -o "$tmp_ver" 2>/dev/null; then
+    echo "Couldn't check for latest version."
+    rm -f "$tmp_ver"
+    return 0
+fi
+
+remote_version=$(tr -d '[:space:]' < "$tmp_ver")
+rm -f "$tmp_ver"
+
+if [ -z "$remote_version" ]; then
+    echo "Couldn't check for latest version."
+    return 0
+fi
+
+if [ "$remote_version" = "$VERSION" ]; then
+    return 0
+fi
+
+echo "Updating Airlock to $remote_version..."
+if ! download_and_install_airlock >/dev/null; then
+    echo "Couldn't update Airlock."
+    return 0
+fi
+
+exec "$INSTALL_PATH" "$@"
+}
+
+update_airlock() {
+local version
+
+echo "Updating Airlock from GitHub..."
+version=$(download_and_install_airlock)
 echo "Airlock updated to $version."
 
 }
@@ -426,6 +479,8 @@ esac
 
 done
 }
+
+check_for_update "$@"
 
 case "${1:-}" in
 "")
