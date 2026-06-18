@@ -363,6 +363,7 @@ detect_container_runtime
 
 echo
 echo "Runtime: $CONTAINER_RUNTIME"
+echo "Version: $VERSION"
 echo
 
 echo "1) Debian"
