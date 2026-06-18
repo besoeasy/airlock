@@ -10,9 +10,13 @@ Instead of installing runtimes, SDKs, and dependencies directly on your machine,
 
 Cloning a repository should not mean trusting it.
 
-Modern projects execute thousands of lines of third-party code during installation, builds, testing, and development.
+The rise of AI has made it easier than ever to generate code, pull in dependencies, and ship something that runs. That speed comes with a cost. More projects mean more `npm install`, more `pip install`, more random packages from strangers — and more supply-chain attacks, typosquatted packages, and post-install scripts running on your machine with full access to your home directory, SSH keys, and browser sessions.
 
-Airlock provides an isolation layer between your machine and untrusted projects.
+People are getting hacked not because they clicked a phishing link, but because they ran `npm test` in a repo they skimmed for five minutes.
+
+If you use Linux, you already care about freedom and security. You chose a system that respects your machine instead of farming it. Running untrusted install scripts directly on your host undoes that choice in one command.
+
+Airlock gives you a middle ground: work normally, but inside a disposable container. Your project mounts in, you build and test inside the sandbox, and when you're done the environment is gone. Nothing from that repo had to touch your real shell, your real `~/.ssh`, or your real package cache.
 
 * Disposable containers
 * Isolated runtimes
