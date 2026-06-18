@@ -453,8 +453,7 @@ echo "10) Arch"
 echo "11) Fedora"
 echo "12) Deno"
 echo "13) Zig"
-echo "14) Update"
-echo "15) Exit"
+echo "14) Exit"
 echo
 
 read -rp "Select option: " choice
@@ -473,8 +472,7 @@ case "$choice" in
 11) launch_named fedora ;;
 12) launch_named deno ;;
 13) launch_named zig ;;
-14) update_airlock ;;
-15) exit 0 ;;
+14) exit 0 ;;
 esac
 
 done
