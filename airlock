@@ -42,7 +42,6 @@ CONTAINER_RUNTIME="docker"
 return
 fi
 
-```
 if command -v podman >/dev/null 2>&1; then
     CONTAINER_RUNTIME="podman"
     return
@@ -51,14 +50,12 @@ fi
 echo
 echo "Docker or Podman is required."
 exit 1
-```
 
 }
 
 detect_shell() {
 local image="$1"
 
-```
 case "$image" in
     alpine:*|archlinux:*|fedora:*|nixos/*)
         echo "sh"
@@ -67,14 +64,12 @@ case "$image" in
         echo "bash"
         ;;
 esac
-```
 
 }
 
 launch_image() {
 detect_container_runtime
 
-```
 local image="$1"
 local shell
 
@@ -86,14 +81,12 @@ shell=$(detect_shell "$image")
     --user "$(id -u):$(id -g)" \
     "$image" \
     "$shell"
-```
 
 }
 
 update_airlock() {
 echo "Updating Airlock..."
 
-```
 TMP_FILE=$(mktemp)
 
 curl -fsSL "$RAW_URL" -o "$TMP_FILE"
@@ -107,7 +100,6 @@ else
 fi
 
 echo "Airlock updated."
-```
 
 }
 
