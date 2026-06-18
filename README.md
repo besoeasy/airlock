@@ -30,6 +30,12 @@ The goal is simple:
 curl -fsSL https://raw.githubusercontent.com/besoeasy/airlock/main/install.sh | bash
 ```
 
+## Uninstall
+
+```bash
+sudo rm -f /usr/local/bin/airlock
+```
+
 ## Usage
 
 ```bash
