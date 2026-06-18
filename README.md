@@ -61,6 +61,24 @@ airlock zig
 airlock nix
 ```
 
+## Project config
+
+Add a `.airlock` file in your project root to define defaults for that repo:
+
+```
+image=node
+command=npm test
+mode=dev
+```
+
+| Key | Description |
+|-----|-------------|
+| `image` | Image alias (`node`, `python`, …) or full reference (`node:22`, `ghcr.io/org/image`) |
+| `command` | Optional command to run instead of an interactive shell |
+| `mode` | `dev` (default) or `audit` (read-only workspace, no network) |
+
+Running `airlock` with no arguments uses `.airlock` when the file is present. Named commands such as `airlock node` still work and pick up `mode` from `.airlock` when set.
+
 ## Security
 
 Airlock reduces risk by running development environments inside containers instead of directly on your host.

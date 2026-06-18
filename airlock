@@ -24,6 +24,64 @@ IMAGES[deno]="denoland/deno:latest"
 IMAGES[zig]="ziglang/zig:latest"
 IMAGES[nix]="nixos/nix:latest"
 
+CONFIG_IMAGE=""
+CONFIG_COMMAND=""
+CONFIG_MODE="dev"
+
+load_airlock_config() {
+CONFIG_IMAGE=""
+CONFIG_COMMAND=""
+CONFIG_MODE="dev"
+
+if [ ! -f .airlock ]; then
+    return 1
+fi
+
+while IFS= read -r line || [ -n "$line" ]; do
+    line="${line%%#*}"
+    line="${line#"${line%%[![:space:]]*}"}"
+    line="${line%"${line##*[![:space:]]}"}"
+    [ -z "$line" ] && continue
+    case "$line" in
+        *=*) ;;
+        *) continue ;;
+    esac
+
+    key="${line%%=*}"
+    value="${line#*=}"
+    key="${key#"${key%%[![:space:]]*}"}"
+    key="${key%"${key##*[![:space:]]}"}"
+    value="${value#"${value%%[![:space:]]*}"}"
+    value="${value%"${value##*[![:space:]]}"}"
+
+    case "$key" in
+        image) CONFIG_IMAGE="$value" ;;
+        command) CONFIG_COMMAND="$value" ;;
+        mode) CONFIG_MODE="$value" ;;
+    esac
+done < .airlock
+
+return 0
+}
+
+resolve_image() {
+local name="$1"
+
+if [ -n "${IMAGES[$name]:-}" ]; then
+    echo "${IMAGES[$name]}"
+    return
+fi
+
+if [[ "$name" == *:* || "$name" == */* ]]; then
+    echo "$name"
+    return
+fi
+
+echo "Unknown image: $name"
+echo "Run: airlock help"
+exit 1
+}
+
 banner() {
 cat <<'EOF'
 _    _      _            _
@@ -71,17 +129,67 @@ launch_image() {
 detect_container_runtime
 
 local image="$1"
+local command="${2:-}"
+local mode="${3:-dev}"
 local shell
+local -a run_args
 
 shell=$(detect_shell "$image")
 
-"$CONTAINER_RUNTIME" run -it --rm \
-    -v "$PWD:/workspace" \
-    -w /workspace \
-    --user "$(id -u):$(id -g)" \
-    "$image" \
-    "$shell"
+case "$mode" in
+    dev)
+        run_args=(
+            run -it --rm
+            -v "$PWD:/workspace"
+            -w /workspace
+            --user "$(id -u):$(id -g)"
+        )
+        ;;
+    audit)
+        run_args=(
+            run -it --rm
+            --read-only
+            --tmpfs /tmp
+            --network none
+            -v "$PWD:/workspace:ro"
+            -w /workspace
+            --user "$(id -u):$(id -g)"
+        )
+        ;;
+    *)
+        echo "Unknown mode: $mode"
+        echo "Supported modes: dev, audit"
+        exit 1
+        ;;
+esac
 
+if [ -n "$command" ]; then
+    "$CONTAINER_RUNTIME" "${run_args[@]}" "$image" "$shell" -c "$command"
+else
+    "$CONTAINER_RUNTIME" "${run_args[@]}" "$image" "$shell"
+fi
+
+}
+
+launch_named() {
+local name="$1"
+
+load_airlock_config 2>/dev/null || true
+launch_image "$(resolve_image "$name")" "" "${CONFIG_MODE:-dev}"
+}
+
+launch_from_config() {
+load_airlock_config || {
+    echo ".airlock not found."
+    exit 1
+}
+
+if [ -z "$CONFIG_IMAGE" ]; then
+    echo ".airlock: image is required."
+    exit 1
+fi
+
+launch_image "$(resolve_image "$CONFIG_IMAGE")" "$CONFIG_COMMAND" "${CONFIG_MODE:-dev}"
 }
 
 update_airlock() {
@@ -123,6 +231,13 @@ echo "  airlock fedora"
 echo "  airlock deno"
 echo "  airlock zig"
 echo "  airlock nix"
+echo
+echo "Project config (.airlock):"
+echo "  image=node"
+echo "  command=npm test"
+echo "  mode=dev"
+echo
+echo "Run airlock in a directory with .airlock to use project settings."
 echo
 }
 
@@ -187,7 +302,11 @@ done
 
 case "${1:-}" in
 "")
-menu
+if [ -f .airlock ]; then
+    launch_from_config
+else
+    menu
+fi
 ;;
 update)
 update_airlock
@@ -199,46 +318,46 @@ version)
 echo "$VERSION"
 ;;
 debian)
-launch_image "${IMAGES[debian]}"
+launch_named debian
 ;;
 alpine)
-launch_image "${IMAGES[alpine]}"
+launch_named alpine
 ;;
 node)
-launch_image "${IMAGES[node]}"
+launch_named node
 ;;
 python)
-launch_image "${IMAGES[python]}"
+launch_named python
 ;;
 go)
-launch_image "${IMAGES[go]}"
+launch_named go
 ;;
 bun)
-launch_image "${IMAGES[bun]}"
+launch_named bun
 ;;
 rust)
-launch_image "${IMAGES[rust]}"
+launch_named rust
 ;;
 java)
-launch_image "${IMAGES[java]}"
+launch_named java
 ;;
 ubuntu)
-launch_image "${IMAGES[ubuntu]}"
+launch_named ubuntu
 ;;
 arch)
-launch_image "${IMAGES[arch]}"
+launch_named arch
 ;;
 fedora)
-launch_image "${IMAGES[fedora]}"
+launch_named fedora
 ;;
 deno)
-launch_image "${IMAGES[deno]}"
+launch_named deno
 ;;
 zig)
-launch_image "${IMAGES[zig]}"
+launch_named zig
 ;;
 nix)
-launch_image "${IMAGES[nix]}"
+launch_named nix
 ;;
 *)
 echo "Unknown command."
