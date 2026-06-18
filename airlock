@@ -299,6 +299,27 @@ profile=$(resolve_profile "$CONFIG_IMAGE")
 launch_image "$profile" "$image" "$CONFIG_COMMAND"
 }
 
+install_binary() {
+local src="$1"
+local dest="/usr/local/bin/airlock"
+
+if install -m 755 "$src" "$dest" 2>/dev/null; then
+    rm -f "$src"
+    return 0
+fi
+
+if command -v sudo >/dev/null 2>&1; then
+    sudo install -m 755 "$src" "$dest"
+    rm -f "$src"
+    return 0
+fi
+
+rm -f "$src"
+echo "Failed to install to $dest (permission denied)."
+echo "Run: sudo install -m 755 $src $dest"
+exit 1
+}
+
 update_airlock() {
 echo "Updating Airlock..."
 
@@ -307,12 +328,7 @@ TMP_FILE=$(mktemp)
 curl -fsSL "$RAW_URL" -o "$TMP_FILE"
 
 chmod +x "$TMP_FILE"
-
-if [ -w /usr/local/bin/airlock ]; then
-    mv "$TMP_FILE" /usr/local/bin/airlock
-else
-    sudo mv "$TMP_FILE" /usr/local/bin/airlock
-fi
+install_binary "$TMP_FILE"
 
 echo "Airlock updated."
 

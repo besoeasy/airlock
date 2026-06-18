@@ -92,15 +92,30 @@ ensure_container_runtime() {
     install_podman
 }
 
+install_binary() {
+    local src="$1"
+
+    if install -m 755 "$src" "$INSTALL_PATH" 2>/dev/null; then
+        rm -f "$src"
+        return 0
+    fi
+
+    if command -v sudo >/dev/null 2>&1; then
+        sudo install -m 755 "$src" "$INSTALL_PATH"
+        rm -f "$src"
+        return 0
+    fi
+
+    rm -f "$src"
+    echo "Failed to install to $INSTALL_PATH (permission denied)."
+    echo "Run: sudo install -m 755 $src $INSTALL_PATH"
+    exit 1
+}
+
 TMP_FILE=$(mktemp)
 curl -fsSL "$AIRLOCK_URL" -o "$TMP_FILE"
 chmod +x "$TMP_FILE"
-
-if [ -w /usr/local/bin ]; then
-    mv "$TMP_FILE" "$INSTALL_PATH"
-else
-    sudo mv "$TMP_FILE" "$INSTALL_PATH"
-fi
+install_binary "$TMP_FILE"
 
 ensure_container_runtime
 
