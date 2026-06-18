@@ -26,12 +26,10 @@ IMAGES[nix]="nixos/nix:latest"
 
 CONFIG_IMAGE=""
 CONFIG_COMMAND=""
-CONFIG_MODE="dev"
 
 load_airlock_config() {
 CONFIG_IMAGE=""
 CONFIG_COMMAND=""
-CONFIG_MODE="dev"
 
 if [ ! -f .airlock ]; then
     return 1
@@ -57,29 +55,175 @@ while IFS= read -r line || [ -n "$line" ]; do
     case "$key" in
         image) CONFIG_IMAGE="$value" ;;
         command) CONFIG_COMMAND="$value" ;;
-        mode) CONFIG_MODE="$value" ;;
     esac
 done < .airlock
 
 return 0
 }
 
-resolve_image() {
-local name="$1"
+resolve_image_ref() {
+local spec="$1"
 
-if [ -n "${IMAGES[$name]:-}" ]; then
-    echo "${IMAGES[$name]}"
+if [ -n "${IMAGES[$spec]:-}" ]; then
+    echo "${IMAGES[$spec]}"
     return
 fi
 
-if [[ "$name" == *:* || "$name" == */* ]]; then
-    echo "$name"
+if [[ "$spec" == *:* || "$spec" == */* ]]; then
+    echo "$spec"
     return
 fi
 
-echo "Unknown image: $name"
+echo "Unknown image: $spec"
 echo "Run: airlock help"
 exit 1
+}
+
+resolve_profile() {
+local spec="$1"
+local key
+
+if [ -n "${IMAGES[$spec]:-}" ]; then
+    echo "$spec"
+    return
+fi
+
+for key in "${!IMAGES[@]}"; do
+    if [ "${IMAGES[$key]}" = "$spec" ]; then
+        echo "$key"
+        return
+    fi
+done
+
+echo "generic"
+}
+
+image_shell() {
+case "$1" in
+    alpine|nix)
+        echo "sh"
+        ;;
+    *)
+        echo "bash"
+        ;;
+esac
+}
+
+image_run_args() {
+local profile="$1"
+local -n args="$2"
+
+case "$profile" in
+    debian|ubuntu|fedora|arch)
+        args=(
+            run -it --rm
+            -v "$PWD:/workspace"
+            -w /workspace
+            --user "$(id -u):$(id -g)"
+        )
+        ;;
+    alpine)
+        args=(
+            run -it --rm
+            -v "$PWD:/workspace"
+            -w /workspace
+            --user "$(id -u):$(id -g)"
+        )
+        ;;
+    node)
+        args=(
+            run -it --rm
+            -v "$PWD:/workspace"
+            -w /workspace
+            --user "$(id -u):$(id -g)"
+            -e npm_config_cache=/workspace/.npm-cache
+            -e NODE_ENV=development
+        )
+        ;;
+    python)
+        args=(
+            run -it --rm
+            -v "$PWD:/workspace"
+            -w /workspace
+            --user "$(id -u):$(id -g)"
+            -e PIP_CACHE_DIR=/workspace/.pip-cache
+            -e PYTHONDONTWRITEBYTECODE=1
+        )
+        ;;
+    go)
+        args=(
+            run -it --rm
+            -v "$PWD:/workspace"
+            -w /workspace
+            --user "$(id -u):$(id -g)"
+            -e GOMODCACHE=/workspace/.gomodcache
+            -e GOCACHE=/workspace/.gocache
+        )
+        ;;
+    bun)
+        args=(
+            run -it --rm
+            -v "$PWD:/workspace"
+            -w /workspace
+            --user "$(id -u):$(id -g)"
+            -e BUN_INSTALL_CACHE_DIR=/workspace/.bun-cache
+        )
+        ;;
+    rust)
+        args=(
+            run -it --rm
+            -v "$PWD:/workspace"
+            -w /workspace
+            --user "$(id -u):$(id -g)"
+            -e CARGO_HOME=/workspace/.cargo
+            -e CARGO_TARGET_DIR=/workspace/target
+        )
+        ;;
+    java)
+        args=(
+            run -it --rm
+            -v "$PWD:/workspace"
+            -w /workspace
+            --user "$(id -u):$(id -g)"
+            -e JAVA_TOOL_OPTIONS=-Duser.home=/workspace
+        )
+        ;;
+    deno)
+        args=(
+            run -it --rm
+            -v "$PWD:/workspace"
+            -w /workspace
+            --user "$(id -u):$(id -g)"
+            -e DENO_DIR=/workspace/.deno
+        )
+        ;;
+    zig)
+        args=(
+            run -it --rm
+            -v "$PWD:/workspace"
+            -w /workspace
+            --user "$(id -u):$(id -g)"
+            -e XDG_CACHE_HOME=/workspace/.cache
+        )
+        ;;
+    nix)
+        args=(
+            run -it --rm
+            --security-opt seccomp=unconfined
+            -v "$PWD:/workspace"
+            -w /workspace
+            -e 'NIX_CONFIG=experimental-features = nix-command flakes'
+        )
+        ;;
+    *)
+        args=(
+            run -it --rm
+            -v "$PWD:/workspace"
+            -w /workspace
+            --user "$(id -u):$(id -g)"
+        )
+        ;;
+esac
 }
 
 banner() {
@@ -111,57 +255,17 @@ exit 1
 
 }
 
-detect_shell() {
-local image="$1"
-
-case "$image" in
-    alpine:*|archlinux:*|fedora:*|nixos/*)
-        echo "sh"
-        ;;
-    *)
-        echo "bash"
-        ;;
-esac
-
-}
-
 launch_image() {
 detect_container_runtime
 
-local image="$1"
-local command="${2:-}"
-local mode="${3:-dev}"
+local profile="$1"
+local image="$2"
+local command="${3:-}"
 local shell
 local -a run_args
 
-shell=$(detect_shell "$image")
-
-case "$mode" in
-    dev)
-        run_args=(
-            run -it --rm
-            -v "$PWD:/workspace"
-            -w /workspace
-            --user "$(id -u):$(id -g)"
-        )
-        ;;
-    audit)
-        run_args=(
-            run -it --rm
-            --read-only
-            --tmpfs /tmp
-            --network none
-            -v "$PWD:/workspace:ro"
-            -w /workspace
-            --user "$(id -u):$(id -g)"
-        )
-        ;;
-    *)
-        echo "Unknown mode: $mode"
-        echo "Supported modes: dev, audit"
-        exit 1
-        ;;
-esac
+shell=$(image_shell "$profile")
+image_run_args "$profile" run_args
 
 if [ -n "$command" ]; then
     "$CONTAINER_RUNTIME" "${run_args[@]}" "$image" "$shell" -c "$command"
@@ -174,11 +278,12 @@ fi
 launch_named() {
 local name="$1"
 
-load_airlock_config 2>/dev/null || true
-launch_image "$(resolve_image "$name")" "" "${CONFIG_MODE:-dev}"
+launch_image "$name" "${IMAGES[$name]}"
 }
 
 launch_from_config() {
+local profile image
+
 load_airlock_config || {
     echo ".airlock not found."
     exit 1
@@ -189,7 +294,9 @@ if [ -z "$CONFIG_IMAGE" ]; then
     exit 1
 fi
 
-launch_image "$(resolve_image "$CONFIG_IMAGE")" "$CONFIG_COMMAND" "${CONFIG_MODE:-dev}"
+image=$(resolve_image_ref "$CONFIG_IMAGE")
+profile=$(resolve_profile "$CONFIG_IMAGE")
+launch_image "$profile" "$image" "$CONFIG_COMMAND"
 }
 
 update_airlock() {
@@ -235,7 +342,6 @@ echo
 echo "Project config (.airlock):"
 echo "  image=node"
 echo "  command=npm test"
-echo "  mode=dev"
 echo
 echo "Run airlock in a directory with .airlock to use project settings."
 echo
@@ -277,20 +383,20 @@ echo
 read -rp "Select option: " choice
 
 case "$choice" in
-1) launch_image "${IMAGES[debian]}" ;;
-2) launch_image "${IMAGES[alpine]}" ;;
-3) launch_image "${IMAGES[node]}" ;;
-4) launch_image "${IMAGES[python]}" ;;
-5) launch_image "${IMAGES[go]}" ;;
-6) launch_image "${IMAGES[bun]}" ;;
-7) launch_image "${IMAGES[rust]}" ;;
-8) launch_image "${IMAGES[java]}" ;;
-9) launch_image "${IMAGES[ubuntu]}" ;;
-10) launch_image "${IMAGES[arch]}" ;;
-11) launch_image "${IMAGES[fedora]}" ;;
-12) launch_image "${IMAGES[deno]}" ;;
-13) launch_image "${IMAGES[zig]}" ;;
-14) launch_image "${IMAGES[nix]}" ;;
+1) launch_named debian ;;
+2) launch_named alpine ;;
+3) launch_named node ;;
+4) launch_named python ;;
+5) launch_named go ;;
+6) launch_named bun ;;
+7) launch_named rust ;;
+8) launch_named java ;;
+9) launch_named ubuntu ;;
+10) launch_named arch ;;
+11) launch_named fedora ;;
+12) launch_named deno ;;
+13) launch_named zig ;;
+14) launch_named nix ;;
 15) update_airlock ;;
 16) show_help ;;
 17) echo "$VERSION" ;;

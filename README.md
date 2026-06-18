@@ -70,16 +70,14 @@ Add a `.airlock` file in your project root to define defaults for that repo:
 ```
 image=node
 command=npm test
-mode=dev
 ```
 
 | Key | Description |
 |-----|-------------|
 | `image` | Image alias (`node`, `python`, …) or full reference (`node:22`, `ghcr.io/org/image`) |
 | `command` | Optional command to run instead of an interactive shell |
-| `mode` | `dev` (default) or `audit` (read-only workspace, no network) |
 
-Running `airlock` with no arguments uses `.airlock` when the file is present. Named commands such as `airlock node` still work and pick up `mode` from `.airlock` when set.
+Running `airlock` with no arguments uses `.airlock` when the file is present. Each built-in image uses a tailored container setup (shell, cache dirs, and runtime-specific env). Custom image references use a generic workspace mount.
 
 ## Security
 
