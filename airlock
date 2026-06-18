@@ -281,6 +281,10 @@ profile=$(resolve_profile "$CONFIG_IMAGE")
 launch_image "$profile" "$image" "$CONFIG_COMMAND"
 }
 
+read_version() {
+grep '^VERSION=' "$1" | head -n1 | cut -d= -f2- | tr -d '"'
+}
+
 install_binary() {
 local src="$1"
 local dest="/usr/local/bin/airlock"
@@ -303,16 +307,39 @@ exit 1
 }
 
 update_airlock() {
-echo "Updating Airlock..."
+local version
+local tmp_file
 
-TMP_FILE=$(mktemp)
+echo "Updating Airlock from GitHub..."
 
-curl -fsSL "$RAW_URL" -o "$TMP_FILE"
+tmp_file=$(mktemp)
+curl -fsSL "$RAW_URL" -o "$tmp_file"
+chmod +x "$tmp_file"
+version=$(read_version "$tmp_file")
+install_binary "$tmp_file"
 
-chmod +x "$TMP_FILE"
-install_binary "$TMP_FILE"
+echo "Airlock updated to $version."
 
-echo "Airlock updated."
+}
+
+update_airlock_local() {
+local version
+local tmp_file
+
+if [ ! -f ./airlock ]; then
+    echo "./airlock not found. Run this from the Airlock repo."
+    exit 1
+fi
+
+version=$(read_version ./airlock)
+echo "Installing Airlock $version from ./airlock..."
+
+tmp_file=$(mktemp)
+cp ./airlock "$tmp_file"
+chmod +x "$tmp_file"
+install_binary "$tmp_file"
+
+echo "Airlock installed ($version)."
 
 }
 
@@ -323,6 +350,8 @@ echo "$REPO_URL"
 echo
 echo "Usage:"
 echo "  airlock"
+echo "  airlock update"
+echo "  airlock update --local"
 echo "  airlock debian"
 echo "  airlock alpine"
 echo "  airlock node"
@@ -407,7 +436,11 @@ else
 fi
 ;;
 update)
-update_airlock
+if [ "${2:-}" = "--local" ] || [ "${2:-}" = "local" ]; then
+    update_airlock_local
+else
+    update_airlock
+fi
 ;;
 help)
 show_help
