@@ -1,152 +1,67 @@
 # Airlock
 
-> A secure airlock between your machine and untrusted dependencies.
+> Stop running untrusted code on your host.
 
-Airlock runs package managers inside disposable Docker or Podman containers, helping reduce the risk of malicious install scripts, supply-chain attacks, and polluted development environments.
+Airlock launches isolated development environments using Docker or Podman.
 
-Instead of running:
-
-```bash
-npm install
-```
-
-directly on your machine, run:
-
-```bash
-airlock
-```
-
-and install dependencies inside an isolated container.
-
----
+Instead of installing runtimes, SDKs, and dependencies directly on your machine, launch a disposable container and work inside it.
 
 ## Why?
 
-Modern projects often contain hundreds or thousands of dependencies.
+Cloning a repository should not mean trusting it.
 
-Running:
+Modern projects execute thousands of lines of third-party code during installation, builds, testing, and development.
 
-```bash
-npm install
-```
-
-on an unfamiliar repository means executing code you haven't reviewed.
-
-Airlock helps by:
-
-* Running package managers in disposable containers
-* Keeping Node.js off your host system
-* Supporting Docker and Podman
-* Providing a simple interactive interface
-* Updating itself automatically
-
----
-
-## Features
+Airlock provides an isolation layer between your machine and untrusted projects.
 
 * Disposable containers
-* Docker support
-* Podman fallback
+* Isolated runtimes
+* Docker and Podman support
 * Self-updating CLI
-* Interactive menu
-* Direct command execution
-* No Node.js installation required on the host
+* No language runtimes required on the host
 
----
+The goal is simple:
 
-## Installation
+**Get pwned less.**
+
+## Install
 
 ```bash
 curl -fsSL https://raw.githubusercontent.com/besoeasy/airlock/main/install.sh | bash
 ```
 
-Verify installation:
-
-```bash
-airlock version
-```
-
----
-
 ## Usage
-
-Launch the interactive menu:
 
 ```bash
 airlock
 ```
 
-Run npm:
+Or launch directly:
 
 ```bash
-airlock npm install
+airlock debian
+airlock alpine
+airlock node
+airlock python
+airlock go
+airlock bun
+airlock rust
+airlock java
+airlock ubuntu
+airlock arch
+airlock fedora
+airlock deno
+airlock zig
+airlock nix
 ```
 
-Run pnpm:
+## Security
 
-```bash
-airlock pnpm install
-```
+Airlock reduces risk by running development environments inside containers instead of directly on your host.
 
-Run yarn:
+Airlock is not a security boundary and does not guarantee protection against malicious software.
 
-```bash
-airlock yarn install
-```
-
-Open a shell inside the sandbox:
-
-```bash
-airlock shell
-```
-
-Update Airlock:
-
-```bash
-airlock update
-```
-
----
-
-## Supported Runtimes
-
-Airlock automatically detects:
-
-1. Docker
-2. Podman
-
-Docker is preferred when both are available.
-
----
-
-## Security Model
-
-Airlock reduces risk by running package managers inside disposable containers.
-
-However, the project directory is still mounted into the container. Always review unfamiliar code before running it.
-
-Airlock improves isolation but is not a guarantee against every supply-chain attack.
-
----
-
-## Roadmap
-
-* Safe Install (`--ignore-scripts`)
-* Install script inspection
-* Risk scoring
-* Cargo support
-* Pip support
-* Read-only mode
-* Network isolation
-* GitHub release-based updates
-
----
-
-## Contributing
-
-Issues and pull requests are welcome.
-
----
+Always review unfamiliar code before executing it.
 
 ## License
 
