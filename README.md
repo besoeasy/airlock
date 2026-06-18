@@ -9,7 +9,7 @@ Disposable dev environments in Docker or Podman — one command, zero host runti
 <br>
 
 [![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](#license)
-[![Version](https://img.shields.io/badge/version-0.0.3-green.svg)](version.txt)
+[![Version](https://img.shields.io/badge/version-0.0.5-green.svg)](version.txt)
 
 <br>
 
