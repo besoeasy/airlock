@@ -39,8 +39,8 @@ If you use Linux, you care about freedom and security. Airlock lets you work nor
 
 ## Features
 
-- **One command** — `airlock node`, `airlock python`, done
-- **13 built-in images** — distros and language runtimes, each with tailored container settings
+- **One command** — `airlock node`, `airlock bun`, done
+- **4 built-in images** — distros and JS runtimes, each with tailored container settings
 - **Project config** — drop a `.airlock` file in any repo
 - **Docker & Podman** — auto-detected; install script can set up Podman for you
 - **Self-updating** — checks `version.txt` on startup and updates silently
@@ -68,7 +68,7 @@ Or launch directly:
 
 ```bash
 airlock node          # Node.js LTS
-airlock python        # Python 3
+airlock bun           # Bun
 airlock debian        # Debian stable
 ```
 
@@ -80,17 +80,8 @@ Your current directory is mounted at `/workspace`. Work inside the container, ex
 |-------|-------|
 | `debian` | `debian:stable` |
 | `alpine` | `alpine:latest` |
-| `ubuntu` | `ubuntu:24.04` |
-| `arch` | `archlinux:latest` |
-| `fedora` | `fedora:latest` |
 | `node` | `node:lts` |
-| `python` | `python:3` |
-| `go` | `golang:latest` |
 | `bun` | `oven/bun:latest` |
-| `rust` | `rust:latest` |
-| `java` | `eclipse-temurin:21` |
-| `deno` | `denoland/deno:latest` |
-| `zig` | `ziglang/zig:latest` |
 
 ## Project config
 

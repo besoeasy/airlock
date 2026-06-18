@@ -14,16 +14,7 @@ declare -A IMAGES
 IMAGES[debian]="debian:stable"
 IMAGES[alpine]="alpine:latest"
 IMAGES[node]="node:lts"
-IMAGES[python]="python:3"
-IMAGES[go]="golang:latest"
 IMAGES[bun]="oven/bun:latest"
-IMAGES[rust]="rust:latest"
-IMAGES[java]="eclipse-temurin:21"
-IMAGES[ubuntu]="ubuntu:24.04"
-IMAGES[arch]="archlinux:latest"
-IMAGES[fedora]="fedora:latest"
-IMAGES[deno]="denoland/deno:latest"
-IMAGES[zig]="ziglang/zig:latest"
 
 CONFIG_IMAGE=""
 CONFIG_COMMAND=""
@@ -115,7 +106,7 @@ local profile="$1"
 local -n args="$2"
 
 case "$profile" in
-    debian|ubuntu|fedora|arch|alpine)
+    debian|alpine)
         args=(
             run -it --rm
             -v "$PWD:/workspace"
@@ -133,26 +124,6 @@ case "$profile" in
             -e NODE_ENV=development
         )
         ;;
-    python)
-        args=(
-            run -it --rm
-            -v "$PWD:/workspace"
-            -w /workspace
-            --user "$(id -u):$(id -g)"
-            -e PIP_CACHE_DIR=/workspace/.pip-cache
-            -e PYTHONDONTWRITEBYTECODE=1
-        )
-        ;;
-    go)
-        args=(
-            run -it --rm
-            -v "$PWD:/workspace"
-            -w /workspace
-            --user "$(id -u):$(id -g)"
-            -e GOMODCACHE=/workspace/.gomodcache
-            -e GOCACHE=/workspace/.gocache
-        )
-        ;;
     bun)
         args=(
             run -it --rm
@@ -160,43 +131,6 @@ case "$profile" in
             -w /workspace
             --user "$(id -u):$(id -g)"
             -e BUN_INSTALL_CACHE_DIR=/workspace/.bun-cache
-        )
-        ;;
-    rust)
-        args=(
-            run -it --rm
-            -v "$PWD:/workspace"
-            -w /workspace
-            --user "$(id -u):$(id -g)"
-            -e CARGO_HOME=/workspace/.cargo
-            -e CARGO_TARGET_DIR=/workspace/target
-        )
-        ;;
-    java)
-        args=(
-            run -it --rm
-            -v "$PWD:/workspace"
-            -w /workspace
-            --user "$(id -u):$(id -g)"
-            -e JAVA_TOOL_OPTIONS=-Duser.home=/workspace
-        )
-        ;;
-    deno)
-        args=(
-            run -it --rm
-            -v "$PWD:/workspace"
-            -w /workspace
-            --user "$(id -u):$(id -g)"
-            -e DENO_DIR=/workspace/.deno
-        )
-        ;;
-    zig)
-        args=(
-            run -it --rm
-            -v "$PWD:/workspace"
-            -w /workspace
-            --user "$(id -u):$(id -g)"
-            -e XDG_CACHE_HOME=/workspace/.cache
         )
         ;;
     *)
@@ -409,15 +343,7 @@ echo "  airlock update --local"
 echo "  airlock debian"
 echo "  airlock alpine"
 echo "  airlock node"
-echo "  airlock python"
-echo "  airlock go"
-echo "  airlock rust"
-echo "  airlock java"
-echo "  airlock ubuntu"
-echo "  airlock arch"
-echo "  airlock fedora"
-echo "  airlock deno"
-echo "  airlock zig"
+echo "  airlock bun"
 echo
 echo "Project config (.airlock):"
 echo "  image=node"
@@ -444,17 +370,8 @@ echo
 echo "1) Debian"
 echo "2) Alpine"
 echo "3) Node"
-echo "4) Python"
-echo "5) Go"
-echo "6) Bun"
-echo "7) Rust"
-echo "8) Java"
-echo "9) Ubuntu"
-echo "10) Arch"
-echo "11) Fedora"
-echo "12) Deno"
-echo "13) Zig"
-echo "14) Exit"
+echo "4) Bun"
+echo "5) Exit"
 echo
 
 read -rp "Select option: " choice
@@ -463,17 +380,8 @@ case "$choice" in
 1) launch_named debian ;;
 2) launch_named alpine ;;
 3) launch_named node ;;
-4) launch_named python ;;
-5) launch_named go ;;
-6) launch_named bun ;;
-7) launch_named rust ;;
-8) launch_named java ;;
-9) launch_named ubuntu ;;
-10) launch_named arch ;;
-11) launch_named fedora ;;
-12) launch_named deno ;;
-13) launch_named zig ;;
-14) exit 0 ;;
+4) launch_named bun ;;
+5) exit 0 ;;
 esac
 
 done
@@ -511,35 +419,8 @@ launch_named alpine
 node)
 launch_named node
 ;;
-python)
-launch_named python
-;;
-go)
-launch_named go
-;;
 bun)
 launch_named bun
-;;
-rust)
-launch_named rust
-;;
-java)
-launch_named java
-;;
-ubuntu)
-launch_named ubuntu
-;;
-arch)
-launch_named arch
-;;
-fedora)
-launch_named fedora
-;;
-deno)
-launch_named deno
-;;
-zig)
-launch_named zig
 ;;
 *)
 echo "Unknown command."
