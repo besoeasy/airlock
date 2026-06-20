@@ -100,13 +100,11 @@ Add a `.airlock` file to pin defaults for a repo:
 
 ```ini
 image=node
-command=npm test
 ```
 
 | Key | Description |
 |-----|-------------|
 | `image` | Alias from the table above (`debian`, `alpine`, `node`, `bun`) |
-| `command` | Optional command to run instead of an interactive shell |
 
 Running `airlock` with no arguments picks up `.airlock` automatically.
 
