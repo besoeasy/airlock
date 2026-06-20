@@ -15,6 +15,9 @@ COMMANDS[debian]='run -it --rm -v "$PWD:/workspace" -w /workspace --network host
 COMMANDS[alpine]='run -it --rm -v "$PWD:/workspace" -w /workspace --network host --user $(id -u):$(id -g) -e HOME=/workspace alpine:latest sh'
 COMMANDS[node]='run -it --rm -v "$PWD:/workspace" -w /workspace --network host --user $(id -u):$(id -g) -e npm_config_cache=/workspace/.npm-cache -e NODE_ENV=development node:lts bash'
 COMMANDS[bun]='run -it --rm -v "$PWD:/workspace" -w /workspace --network host --user $(id -u):$(id -g) -e BUN_INSTALL_CACHE_DIR=/workspace/.bun-cache oven/bun:latest bash'
+COMMANDS[python]='run -it --rm -v "$PWD:/workspace" -w /workspace --network host --user $(id -u):$(id -g) -e HOME=/workspace -e PIP_CACHE_DIR=/workspace/.pip-cache python:3 bash'
+COMMANDS[go]='run -it --rm -v "$PWD:/workspace" -w /workspace --network host --user $(id -u):$(id -g) -e HOME=/workspace -e GOPATH=/workspace/.go golang:latest bash'
+COMMANDS[rust]='run -it --rm -v "$PWD:/workspace" -w /workspace --network host --user $(id -u):$(id -g) -e HOME=/workspace -e CARGO_HOME=/workspace/.cargo rust:latest bash'
 
 CONFIG_IMAGE=""
 
@@ -243,6 +246,9 @@ echo "  airlock debian"
 echo "  airlock alpine"
 echo "  airlock node"
 echo "  airlock bun"
+echo "  airlock python"
+echo "  airlock go"
+echo "  airlock rust"
 echo
 echo "Project config (.airlock):"
 echo "  image=node"
@@ -269,7 +275,10 @@ echo "1) Debian"
 echo "2) Alpine"
 echo "3) Node"
 echo "4) Bun"
-echo "5) Exit"
+echo "5) Python"
+echo "6) Go"
+echo "7) Rust"
+echo "8) Exit"
 echo
 
 read -rp "Select option: " choice
@@ -279,7 +288,10 @@ case "$choice" in
 2) launch_named alpine ;;
 3) launch_named node ;;
 4) launch_named bun ;;
-5) exit 0 ;;
+5) launch_named python ;;
+6) launch_named go ;;
+7) launch_named rust ;;
+8) exit 0 ;;
 esac
 
 done
@@ -319,6 +331,15 @@ launch_named node
 ;;
 bun)
 launch_named bun
+;;
+python)
+launch_named python
+;;
+go)
+launch_named go
+;;
+rust)
+launch_named rust
 ;;
 *)
 echo "Unknown command."

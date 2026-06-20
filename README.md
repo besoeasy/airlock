@@ -69,6 +69,9 @@ Or launch directly:
 ```bash
 airlock node          # Node.js LTS
 airlock bun           # Bun
+airlock python        # Python 3
+airlock go            # Go
+airlock rust          # Rust
 airlock debian        # Debian stable
 ```
 
@@ -82,15 +85,9 @@ Your current directory is mounted at `/workspace`. Work inside the container, ex
 | `alpine` | `alpine:latest` |
 | `node` | `node:lts` |
 | `bun` | `oven/bun:latest` |
-
-Each alias runs an equivalent one-liner:
-
-```bash
-docker run -it --rm -v "$PWD:/workspace" -w /workspace --network host --user $(id -u):$(id -g) -e HOME=/workspace debian:stable bash
-docker run -it --rm -v "$PWD:/workspace" -w /workspace --network host --user $(id -u):$(id -g) -e HOME=/workspace alpine:latest sh
-docker run -it --rm -v "$PWD:/workspace" -w /workspace --network host --user $(id -u):$(id -g) -e npm_config_cache=/workspace/.npm-cache -e NODE_ENV=development node:lts bash
-docker run -it --rm -v "$PWD:/workspace" -w /workspace --network host --user $(id -u):$(id -g) -e BUN_INSTALL_CACHE_DIR=/workspace/.bun-cache oven/bun:latest bash
-```
+| `python` | `python:3` |
+| `go` | `golang:latest` |
+| `rust` | `rust:latest` |
 
 Run `airlock help` to print the current commands.
 
