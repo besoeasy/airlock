@@ -11,13 +11,13 @@ INSTALL_PATH="/usr/local/bin/airlock"
 
 declare -A COMMANDS
 
-COMMANDS[debian]='run -it --rm -v "$PWD:/workspace" -w /workspace --network host --user $(id -u):$(id -g) -e HOME=/workspace debian:stable bash'
-COMMANDS[alpine]='run -it --rm -v "$PWD:/workspace" -w /workspace --network host --user $(id -u):$(id -g) -e HOME=/workspace alpine:latest sh'
-COMMANDS[node]='run -it --rm -v "$PWD:/workspace" -w /workspace --network host --user $(id -u):$(id -g) -e npm_config_cache=/workspace/.npm-cache -e NODE_ENV=development node:lts bash'
-COMMANDS[bun]='run -it --rm -v "$PWD:/workspace" -w /workspace --network host --user $(id -u):$(id -g) -e BUN_INSTALL_CACHE_DIR=/workspace/.bun-cache oven/bun:latest bash'
-COMMANDS[python]='run -it --rm -v "$PWD:/workspace" -w /workspace --network host --user $(id -u):$(id -g) -e HOME=/workspace -e PIP_CACHE_DIR=/workspace/.pip-cache python:3 bash'
-COMMANDS[go]='run -it --rm -v "$PWD:/workspace" -w /workspace --network host --user $(id -u):$(id -g) -e HOME=/workspace -e GOPATH=/workspace/.go golang:latest bash'
-COMMANDS[rust]='run -it --rm -v "$PWD:/workspace" -w /workspace --network host --user $(id -u):$(id -g) -e HOME=/workspace -e CARGO_HOME=/workspace/.cargo rust:latest bash'
+COMMANDS[debian]='run -it --rm -v "$PWD:/workspace" -w /workspace --network host  -e HOME=/workspace debian:stable bash'
+COMMANDS[alpine]='run -it --rm -v "$PWD:/workspace" -w /workspace --network host  -e HOME=/workspace alpine:latest sh'
+COMMANDS[node]='run -it --rm -v "$PWD:/workspace" -w /workspace --network host  -e npm_config_cache=/workspace/.npm-cache -e NODE_ENV=development node:lts bash'
+COMMANDS[bun]='run -it --rm -v "$PWD:/workspace" -w /workspace --network host  -e BUN_INSTALL_CACHE_DIR=/workspace/.bun-cache oven/bun:latest bash'
+COMMANDS[python]='run -it --rm -v "$PWD:/workspace" -w /workspace --network host  -e HOME=/workspace -e PIP_CACHE_DIR=/workspace/.pip-cache python:3 bash'
+COMMANDS[go]='run -it --rm -v "$PWD:/workspace" -w /workspace --network host  -e HOME=/workspace -e GOPATH=/workspace/.go golang:latest bash'
+COMMANDS[rust]='run -it --rm -v "$PWD:/workspace" -w /workspace --network host  -e HOME=/workspace -e CARGO_HOME=/workspace/.cargo rust:latest bash'
 
 CONFIG_IMAGE=""
 
