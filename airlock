@@ -66,6 +66,9 @@ get_image_run_args() {
         rust)
             echo "run -it --rm -v \"$PWD:/workspace\" -w /workspace $net -e HOME=/workspace -e CARGO_HOME=/workspace/.cargo rust:latest bash"
             ;;
+        opencode)
+            echo "run -it --rm -v \"$PWD:/workspace\" -w /workspace $net -v \"$HOME/.config/opencode:/home/opencode/.config/opencode\" ghcr.io/anomalyco/opencode:latest"
+            ;;
         *)
             echo ""
             ;;
@@ -75,7 +78,7 @@ get_image_run_args() {
 is_known_image() {
     local name="$1"
     case "$name" in
-        debian|alpine|node|bun|python|go|rust) return 0 ;;
+        debian|alpine|node|bun|python|go|rust|opencode) return 0 ;;
         *) return 1 ;;
     esac
 }
@@ -327,6 +330,7 @@ show_help() {
     echo "  airlock python"
     echo "  airlock go"
     echo "  airlock rust"
+    echo "  airlock opencode"
     echo
     echo "Project config (.airlock):"
     echo "  image=node"
@@ -359,7 +363,8 @@ menu() {
         echo "5) Python"
         echo "6) Go"
         echo "7) Rust"
-        echo "8) Exit"
+        echo "8) OpenCode"
+        echo "9) Exit"
         echo
 
         read -rp "Select option: " choice
@@ -372,7 +377,8 @@ menu() {
         5) launch_named python ;;
         6) launch_named go ;;
         7) launch_named rust ;;
-        8) exit 0 ;;
+        8) launch_named opencode ;;
+        9) exit 0 ;;
         esac
 
     done
@@ -424,6 +430,9 @@ go)
     ;;
 rust)
     launch_named rust
+    ;;
+opencode)
+    launch_named opencode
     ;;
 *)
     echo "Unknown command: $1"
