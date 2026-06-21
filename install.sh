@@ -8,7 +8,28 @@ has_container_runtime() {
     command -v docker >/dev/null 2>&1 || command -v podman >/dev/null 2>&1
 }
 
-install_podman() {
+install_podman_macos() {
+    if command -v brew >/dev/null 2>&1; then
+        echo "Installing Podman via Homebrew..."
+        brew install podman
+        echo
+        echo "Starting Podman machine (required on macOS)..."
+        podman machine init 2>/dev/null || true
+        podman machine start 2>/dev/null || true
+        echo "Podman is ready."
+    else
+        echo
+        echo "No container runtime found on macOS."
+        echo "Install one of the following:"
+        echo "  • Docker Desktop : https://www.docker.com/products/docker-desktop/"
+        echo "  • Podman Desktop : https://podman-desktop.io/"
+        echo "  • Homebrew + Podman: /bin/bash -c \"\$(curl -fsSL https://raw.githubusercontent.com/Homebrew/install/HEAD/install.sh)\""
+        echo "    then: brew install podman && podman machine init && podman machine start"
+        exit 1
+    fi
+}
+
+install_podman_linux() {
     local id id_like
 
     if [ -f /etc/os-release ]; then
@@ -68,16 +89,9 @@ install_podman() {
                     sudo pacman -Sy --noconfirm podman
                     ;;
                 *)
-                    if [ "$(uname -s)" = "Darwin" ] && command -v brew >/dev/null 2>&1; then
-                        echo "Installing Podman (Homebrew)..."
-                        brew install podman
-                        echo "On macOS, run: podman machine init && podman machine start"
-                        return 0
-                    fi
-
                     echo "No container runtime found."
                     echo "Install Docker or Podman, then run: airlock"
-                    return 1
+                    exit 1
                     ;;
             esac
             ;;
@@ -89,7 +103,11 @@ ensure_container_runtime() {
         return 0
     fi
 
-    install_podman
+    if [ "$(uname -s)" = "Darwin" ]; then
+        install_podman_macos
+    else
+        install_podman_linux
+    fi
 }
 
 install_binary() {
@@ -119,4 +137,6 @@ install_binary "$TMP_FILE"
 
 ensure_container_runtime
 
-echo "Airlock installed. Run: airlock"
+echo
+echo "Airlock installed successfully."
+echo "Run: airlock"

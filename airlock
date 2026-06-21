@@ -2,66 +2,304 @@
 
 set -e
 
-VERSION="0.0.7"
+VERSION="0.0.8"
 
 REPO_URL="https://github.com/besoeasy/airlock"
 RAW_URL="https://cdn.jsdelivr.net/gh/besoeasy/airlock@main/airlock"
 RAW_VER_URL="https://cdn.jsdelivr.net/gh/besoeasy/airlock@main/version.txt"
 INSTALL_PATH="/usr/local/bin/airlock"
 
-declare -A COMMANDS
-
-COMMANDS[debian]='run -it --rm -v "$PWD:/workspace" -w /workspace --network host  -e HOME=/workspace debian:stable bash'
-COMMANDS[alpine]='run -it --rm -v "$PWD:/workspace" -w /workspace --network host  -e HOME=/workspace alpine:latest sh'
-COMMANDS[node]='run -it --rm -v "$PWD:/workspace" -w /workspace --network host  -e npm_config_cache=/workspace/.npm-cache -e NODE_ENV=development node:lts bash'
-COMMANDS[bun]='run -it --rm -v "$PWD:/workspace" -w /workspace --network host  -e BUN_INSTALL_CACHE_DIR=/workspace/.bun-cache oven/bun:latest bash'
-COMMANDS[python]='run -it --rm -v "$PWD:/workspace" -w /workspace --network host  -e HOME=/workspace -e PIP_CACHE_DIR=/workspace/.pip-cache python:3 bash'
-COMMANDS[go]='run -it --rm -v "$PWD:/workspace" -w /workspace --network host  -e HOME=/workspace -e GOPATH=/workspace/.go golang:latest bash'
-COMMANDS[rust]='run -it --rm -v "$PWD:/workspace" -w /workspace --network host  -e HOME=/workspace -e CARGO_HOME=/workspace/.cargo rust:latest bash'
-
 CONFIG_IMAGE=""
 
+# ---------------------------------------------------------------------------
+# Portable realpath — works on macOS (BSD) and Linux
+# ---------------------------------------------------------------------------
+portable_realpath() {
+    if command -v realpath >/dev/null 2>&1; then
+        realpath "$1" 2>/dev/null || echo "$1"
+    elif command -v readlink >/dev/null 2>&1; then
+        readlink -f "$1" 2>/dev/null || echo "$1"
+    else
+        echo "$1"
+    fi
+}
+
+# ---------------------------------------------------------------------------
+# Network flag — --network host is broken inside Docker Desktop on macOS
+# ---------------------------------------------------------------------------
+network_flag() {
+    if [ "$(uname -s)" = "Darwin" ]; then
+        echo ""
+    else
+        echo "--network host"
+    fi
+}
+
+# ---------------------------------------------------------------------------
+# Build a docker/podman run command for a given image configuration
+# Uses a case statement instead of declare -A for bash 3.2 compatibility
+# ---------------------------------------------------------------------------
+get_image_run_args() {
+    local name="$1"
+    local net
+    net=$(network_flag)
+
+    case "$name" in
+        debian)
+            echo "run -it --rm -v \"$PWD:/workspace\" -w /workspace $net -e HOME=/workspace debian:stable bash"
+            ;;
+        alpine)
+            echo "run -it --rm -v \"$PWD:/workspace\" -w /workspace $net -e HOME=/workspace alpine:latest sh"
+            ;;
+        node)
+            echo "run -it --rm -v \"$PWD:/workspace\" -w /workspace $net -e npm_config_cache=/workspace/.npm-cache -e NODE_ENV=development node:lts bash"
+            ;;
+        bun)
+            echo "run -it --rm -v \"$PWD:/workspace\" -w /workspace $net -e BUN_INSTALL_CACHE_DIR=/workspace/.bun-cache oven/bun:latest bash"
+            ;;
+        python)
+            echo "run -it --rm -v \"$PWD:/workspace\" -w /workspace $net -e HOME=/workspace -e PIP_CACHE_DIR=/workspace/.pip-cache python:3 bash"
+            ;;
+        go)
+            echo "run -it --rm -v \"$PWD:/workspace\" -w /workspace $net -e HOME=/workspace -e GOPATH=/workspace/.go golang:latest bash"
+            ;;
+        rust)
+            echo "run -it --rm -v \"$PWD:/workspace\" -w /workspace $net -e HOME=/workspace -e CARGO_HOME=/workspace/.cargo rust:latest bash"
+            ;;
+        *)
+            echo ""
+            ;;
+    esac
+}
+
+is_known_image() {
+    local name="$1"
+    case "$name" in
+        debian|alpine|node|bun|python|go|rust) return 0 ;;
+        *) return 1 ;;
+    esac
+}
+
+# ---------------------------------------------------------------------------
+# Config loader
+# ---------------------------------------------------------------------------
 load_airlock_config() {
-CONFIG_IMAGE=""
+    CONFIG_IMAGE=""
 
-if [ ! -f .airlock ]; then
-    return 1
-fi
+    if [ ! -f .airlock ]; then
+        return 1
+    fi
 
-while IFS= read -r line || [ -n "$line" ]; do
-    line="${line%%#*}"
-    line="${line#"${line%%[![:space:]]*}"}"
-    line="${line%"${line##*[![:space:]]}"}"
-    [ -z "$line" ] && continue
-    case "$line" in
-        *=*) ;;
-        *) continue ;;
-    esac
+    while IFS= read -r line || [ -n "$line" ]; do
+        line="${line%%#*}"
+        line="${line#"${line%%[![:space:]]*}"}"
+        line="${line%"${line##*[![:space:]]}"}"
+        [ -z "$line" ] && continue
+        case "$line" in
+            *=*) ;;
+            *) continue ;;
+        esac
 
-    key="${line%%=*}"
-    value="${line#*=}"
-    key="${key#"${key%%[![:space:]]*}"}"
-    key="${key%"${key##*[![:space:]]}"}"
-    value="${value#"${value%%[![:space:]]*}"}"
-    value="${value%"${value##*[![:space:]]}"}"
+        key="${line%%=*}"
+        value="${line#*=}"
+        key="${key#"${key%%[![:space:]]*}"}"
+        key="${key%"${key##*[![:space:]]}"}"
+        value="${value#"${value%%[![:space:]]*}"}"
+        value="${value%"${value##*[![:space:]]}"}"
 
-    case "$key" in
-        image) CONFIG_IMAGE="$value" ;;
-    esac
-done < .airlock
+        case "$key" in
+            image) CONFIG_IMAGE="$value" ;;
+        esac
+    done < .airlock
 
-return 0
+    return 0
 }
 
+# ---------------------------------------------------------------------------
+# Container runtime
+# ---------------------------------------------------------------------------
+detect_container_runtime() {
+    if command -v docker >/dev/null 2>&1; then
+        CONTAINER_RUNTIME="docker"
+        return
+    fi
+
+    if command -v podman >/dev/null 2>&1; then
+        CONTAINER_RUNTIME="podman"
+        return
+    fi
+
+    echo
+    echo "Docker or Podman is required."
+    if [ "$(uname -s)" = "Darwin" ]; then
+        echo "Install Docker Desktop: https://www.docker.com/products/docker-desktop/"
+        echo "Or Podman Desktop: https://podman-desktop.io/"
+    fi
+    exit 1
+}
+
+# ---------------------------------------------------------------------------
+# Launch helpers
+# ---------------------------------------------------------------------------
 run_command() {
-local runtime="$1"
-local run_cmd="$2"
+    local runtime="$1"
+    local run_cmd="$2"
 
-eval "$runtime $run_cmd"
+    eval "$runtime $run_cmd"
 }
 
+launch_named() {
+    local name="$1"
+    local run_args
+
+    detect_container_runtime
+
+    if ! is_known_image "$name"; then
+        echo "Unknown image: $name"
+        echo "Run: airlock help"
+        exit 1
+    fi
+
+    run_args=$(get_image_run_args "$name")
+    run_command "$CONTAINER_RUNTIME" "$run_args"
+}
+
+launch_from_config() {
+    load_airlock_config || {
+        echo ".airlock not found."
+        exit 1
+    }
+
+    if [ -z "$CONFIG_IMAGE" ]; then
+        echo ".airlock: image is required."
+        exit 1
+    fi
+
+    launch_named "$CONFIG_IMAGE"
+}
+
+# ---------------------------------------------------------------------------
+# Update helpers
+# ---------------------------------------------------------------------------
+read_version() {
+    grep '^VERSION=' "$1" | head -n1 | cut -d= -f2- | tr -d '"'
+}
+
+install_binary() {
+    local src="$1"
+    local dest="$INSTALL_PATH"
+
+    if install -m 755 "$src" "$dest" 2>/dev/null; then
+        rm -f "$src"
+        return 0
+    fi
+
+    if command -v sudo >/dev/null 2>&1; then
+        sudo install -m 755 "$src" "$dest"
+        rm -f "$src"
+        return 0
+    fi
+
+    rm -f "$src"
+    echo "Failed to install to $dest (permission denied)."
+    echo "Run: sudo install -m 755 $src $dest"
+    exit 1
+}
+
+download_and_install_airlock() {
+    local version
+    local tmp_file
+
+    tmp_file=$(mktemp)
+    curl -fsSL "$RAW_URL" -o "$tmp_file"
+    chmod +x "$tmp_file"
+    version=$(read_version "$tmp_file")
+    install_binary "$tmp_file"
+    echo "$version"
+}
+
+check_for_update() {
+    local remote_version
+    local tmp_ver
+    local installed_path
+    local current_path
+
+    case "${1:-}" in
+        update) return 0 ;;
+    esac
+
+    if [ "${AIRLOCK_SKIP_UPDATE:-}" = "1" ]; then
+        return 0
+    fi
+
+    installed_path=$(portable_realpath "$INSTALL_PATH")
+    current_path=$(portable_realpath "$0")
+
+    if [ "$current_path" != "$installed_path" ]; then
+        return 0
+    fi
+
+    tmp_ver=$(mktemp)
+    if ! curl -fsSL --max-time 10 "$RAW_VER_URL" -o "$tmp_ver" 2>/dev/null; then
+        echo "Couldn't check for latest version."
+        rm -f "$tmp_ver"
+        return 0
+    fi
+
+    remote_version=$(tr -d '[:space:]' < "$tmp_ver")
+    rm -f "$tmp_ver"
+
+    if [ -z "$remote_version" ]; then
+        echo "Couldn't check for latest version."
+        return 0
+    fi
+
+    if [ "$remote_version" = "$VERSION" ]; then
+        return 0
+    fi
+
+    echo "Updating Airlock to $remote_version..."
+    if ! download_and_install_airlock >/dev/null; then
+        echo "Couldn't update Airlock."
+        return 0
+    fi
+
+    exec "$INSTALL_PATH" "$@"
+}
+
+update_airlock() {
+    local version
+
+    echo "Updating Airlock from GitHub..."
+    version=$(download_and_install_airlock)
+    echo "Airlock updated to $version."
+}
+
+update_airlock_local() {
+    local version
+    local tmp_file
+
+    if [ ! -f ./airlock ]; then
+        echo "./airlock not found. Run this from the Airlock repo."
+        exit 1
+    fi
+
+    version=$(read_version ./airlock)
+    echo "Installing Airlock $version from ./airlock..."
+
+    tmp_file=$(mktemp)
+    cp ./airlock "$tmp_file"
+    chmod +x "$tmp_file"
+    install_binary "$tmp_file"
+
+    echo "Airlock installed ($version)."
+}
+
+# ---------------------------------------------------------------------------
+# UI
+# ---------------------------------------------------------------------------
 banner() {
-cat <<'EOF'
+    cat <<'EOF'
     _    _      _            _
    / \  (_)_ __| | ___   ___| | __
   / _ \ | | '__| |/ _ \ / __| |/ /
@@ -70,280 +308,126 @@ cat <<'EOF'
 
 Secure Development Sandbox
 EOF
-echo "$REPO_URL"
-}
-
-detect_container_runtime() {
-if command -v docker >/dev/null 2>&1; then
-CONTAINER_RUNTIME="docker"
-return
-fi
-
-if command -v podman >/dev/null 2>&1; then
-    CONTAINER_RUNTIME="podman"
-    return
-fi
-
-echo
-echo "Docker or Podman is required."
-exit 1
-
-}
-
-launch_named() {
-local name="$1"
-
-detect_container_runtime
-
-if [ -z "${COMMANDS[$name]:-}" ]; then
-    echo "Unknown image: $name"
-    echo "Run: airlock help"
-    exit 1
-fi
-
-run_command "$CONTAINER_RUNTIME" "${COMMANDS[$name]}"
-}
-
-launch_from_config() {
-load_airlock_config || {
-    echo ".airlock not found."
-    exit 1
-}
-
-if [ -z "$CONFIG_IMAGE" ]; then
-    echo ".airlock: image is required."
-    exit 1
-fi
-
-launch_named "$CONFIG_IMAGE"
-}
-
-read_version() {
-grep '^VERSION=' "$1" | head -n1 | cut -d= -f2- | tr -d '"'
-}
-
-install_binary() {
-local src="$1"
-local dest="$INSTALL_PATH"
-
-if install -m 755 "$src" "$dest" 2>/dev/null; then
-    rm -f "$src"
-    return 0
-fi
-
-if command -v sudo >/dev/null 2>&1; then
-    sudo install -m 755 "$src" "$dest"
-    rm -f "$src"
-    return 0
-fi
-
-rm -f "$src"
-echo "Failed to install to $dest (permission denied)."
-echo "Run: sudo install -m 755 $src $dest"
-exit 1
-}
-
-download_and_install_airlock() {
-local version
-local tmp_file
-
-tmp_file=$(mktemp)
-curl -fsSL "$RAW_URL" -o "$tmp_file"
-chmod +x "$tmp_file"
-version=$(read_version "$tmp_file")
-install_binary "$tmp_file"
-echo "$version"
-}
-
-check_for_update() {
-local remote_version
-local tmp_ver
-local installed_path
-
-case "${1:-}" in
-    update) return 0 ;;
-esac
-
-if [ "${AIRLOCK_SKIP_UPDATE:-}" = "1" ]; then
-    return 0
-fi
-
-installed_path=$(readlink -f "$INSTALL_PATH" 2>/dev/null || echo "$INSTALL_PATH")
-if [ "$(readlink -f "$0" 2>/dev/null || echo "$0")" != "$installed_path" ]; then
-    return 0
-fi
-
-tmp_ver=$(mktemp)
-if ! curl -fsSL --max-time 10 "$RAW_VER_URL" -o "$tmp_ver" 2>/dev/null; then
-    echo "Couldn't check for latest version."
-    rm -f "$tmp_ver"
-    return 0
-fi
-
-remote_version=$(tr -d '[:space:]' < "$tmp_ver")
-rm -f "$tmp_ver"
-
-if [ -z "$remote_version" ]; then
-    echo "Couldn't check for latest version."
-    return 0
-fi
-
-if [ "$remote_version" = "$VERSION" ]; then
-    return 0
-fi
-
-echo "Updating Airlock to $remote_version..."
-if ! download_and_install_airlock >/dev/null; then
-    echo "Couldn't update Airlock."
-    return 0
-fi
-
-exec "$INSTALL_PATH" "$@"
-}
-
-update_airlock() {
-local version
-
-echo "Updating Airlock from GitHub..."
-version=$(download_and_install_airlock)
-echo "Airlock updated to $version."
-
-}
-
-update_airlock_local() {
-local version
-local tmp_file
-
-if [ ! -f ./airlock ]; then
-    echo "./airlock not found. Run this from the Airlock repo."
-    exit 1
-fi
-
-version=$(read_version ./airlock)
-echo "Installing Airlock $version from ./airlock..."
-
-tmp_file=$(mktemp)
-cp ./airlock "$tmp_file"
-chmod +x "$tmp_file"
-install_binary "$tmp_file"
-
-echo "Airlock installed ($version)."
-
+    echo "$REPO_URL"
 }
 
 show_help() {
-local name
-
-echo
-echo "Repository:"
-echo "$REPO_URL"
-echo
-echo "Usage:"
-echo "  airlock"
-echo "  airlock update"
-echo "  airlock update --local"
-echo "  airlock debian"
-echo "  airlock alpine"
-echo "  airlock node"
-echo "  airlock bun"
-echo "  airlock python"
-echo "  airlock go"
-echo "  airlock rust"
-echo
-echo "Project config (.airlock):"
-echo "  image=node"
-echo
-echo "Run airlock in a directory with .airlock to use project settings."
-echo
+    echo
+    echo "Repository:"
+    echo "$REPO_URL"
+    echo
+    echo "Usage:"
+    echo "  airlock"
+    echo "  airlock update"
+    echo "  airlock update --local"
+    echo "  airlock debian"
+    echo "  airlock alpine"
+    echo "  airlock node"
+    echo "  airlock bun"
+    echo "  airlock python"
+    echo "  airlock go"
+    echo "  airlock rust"
+    echo
+    echo "Project config (.airlock):"
+    echo "  image=node"
+    echo
+    echo "Run airlock in a directory with .airlock to use project settings."
+    echo
+    echo "Platform: $(uname -s)"
+    echo
 }
 
 menu() {
-while true; do
+    while true; do
 
-clear
+        clear
 
-banner
+        banner
 
-detect_container_runtime
+        detect_container_runtime
 
-echo
-echo "Runtime: $CONTAINER_RUNTIME"
-echo "Version: $VERSION"
-echo
+        echo
+        echo "Runtime: $CONTAINER_RUNTIME"
+        echo "Version: $VERSION"
+        echo "Platform: $(uname -s)"
+        echo
 
-echo "1) Debian"
-echo "2) Alpine"
-echo "3) Node"
-echo "4) Bun"
-echo "5) Python"
-echo "6) Go"
-echo "7) Rust"
-echo "8) Exit"
-echo
+        echo "1) Debian"
+        echo "2) Alpine"
+        echo "3) Node"
+        echo "4) Bun"
+        echo "5) Python"
+        echo "6) Go"
+        echo "7) Rust"
+        echo "8) Exit"
+        echo
 
-read -rp "Select option: " choice
+        read -rp "Select option: " choice
 
-case "$choice" in
-1) launch_named debian ;;
-2) launch_named alpine ;;
-3) launch_named node ;;
-4) launch_named bun ;;
-5) launch_named python ;;
-6) launch_named go ;;
-7) launch_named rust ;;
-8) exit 0 ;;
-esac
+        case "$choice" in
+        1) launch_named debian ;;
+        2) launch_named alpine ;;
+        3) launch_named node ;;
+        4) launch_named bun ;;
+        5) launch_named python ;;
+        6) launch_named go ;;
+        7) launch_named rust ;;
+        8) exit 0 ;;
+        esac
 
-done
+    done
 }
 
+# ---------------------------------------------------------------------------
+# Entry point
+# ---------------------------------------------------------------------------
 check_for_update "$@"
 
 case "${1:-}" in
 "")
-if [ -f .airlock ]; then
-    launch_from_config
-else
-    menu
-fi
-;;
+    if [ -f .airlock ]; then
+        launch_from_config
+    else
+        menu
+    fi
+    ;;
 update)
-if [ "${2:-}" = "--local" ] || [ "${2:-}" = "local" ]; then
-    update_airlock_local
-else
-    update_airlock
-fi
-;;
+    if [ "${2:-}" = "--local" ] || [ "${2:-}" = "local" ]; then
+        update_airlock_local
+    else
+        update_airlock
+    fi
+    ;;
 help)
-show_help
-;;
+    show_help
+    ;;
 version)
-echo "$VERSION"
-;;
+    echo "$VERSION"
+    ;;
 debian)
-launch_named debian
-;;
+    launch_named debian
+    ;;
 alpine)
-launch_named alpine
-;;
+    launch_named alpine
+    ;;
 node)
-launch_named node
-;;
+    launch_named node
+    ;;
 bun)
-launch_named bun
-;;
+    launch_named bun
+    ;;
 python)
-launch_named python
-;;
+    launch_named python
+    ;;
 go)
-launch_named go
-;;
+    launch_named go
+    ;;
 rust)
-launch_named rust
-;;
+    launch_named rust
+    ;;
 *)
-echo "Unknown command."
-echo "Run: airlock help"
-exit 1
-;;
+    echo "Unknown command: $1"
+    echo "Run: airlock help"
+    exit 1
+    ;;
 esac

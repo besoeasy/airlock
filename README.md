@@ -7,7 +7,8 @@
 A single bash script that spins up a disposable, isolated container for any project — so `npm install` can't touch your SSH keys, dotfiles, or anything else that matters.
 
 [![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](#license)
-[![Version](https://img.shields.io/badge/version-0.0.7-green.svg)](version.txt)
+[![Version](https://img.shields.io/badge/version-0.0.8-green.svg)](version.txt)
+[![Platform](https://img.shields.io/badge/platform-Linux%20%7C%20macOS-lightgrey.svg)](#)
 [![Shell](https://img.shields.io/badge/shell-bash-89e051.svg)](#)
 
 </div>
@@ -44,7 +45,19 @@ curl -fsSL https://cdn.jsdelivr.net/gh/besoeasy/airlock@main/install.sh | bash
 
 That's it. The script:
 - Downloads the `airlock` binary to `/usr/local/bin`
-- If Docker or Podman isn't found, **automatically installs Podman** for you (supports Debian, Ubuntu, Fedora, Arch, openSUSE, Alpine, RHEL, and more)
+- If Docker or Podman isn't found, **automatically installs Podman** for you
+  - **Linux**: supports Debian, Ubuntu, Fedora, Arch, openSUSE, Alpine, RHEL, and more
+  - **macOS**: installs via Homebrew and initializes a Podman machine, or guides you to Docker Desktop
+
+### macOS prerequisite
+
+Airlock works on macOS with **Docker Desktop** or **Podman Desktop** — both are free:
+
+| Option | Link |
+|--------|------|
+| Docker Desktop | https://www.docker.com/products/docker-desktop/ |
+| Podman Desktop | https://podman-desktop.io/ |
+| Homebrew + Podman | `brew install podman && podman machine init && podman machine start` |
 
 No Node.js. No Python. No package manager. Just bash and a container runtime.
 
@@ -109,6 +122,13 @@ Great for open-source projects: commit `.airlock` so contributors get the correc
 No daemon. No config system. No agent running in the background. Airlock is ~350 lines of bash that wraps Docker/Podman with the right flags. You can read the whole thing in 5 minutes, audit it, and trust it.
 
 It also **self-updates silently** — on each run it checks for a newer version and replaces itself if one exists.
+
+## Platform support
+
+| Platform | Status | Notes |
+|----------|--------|-------|
+| Linux | ✅ Full support | Auto-installs Podman if needed |
+| macOS | ✅ Full support | Requires Docker Desktop or Podman Desktop |
 
 ---
 
