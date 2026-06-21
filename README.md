@@ -1,119 +1,124 @@
 <div align="center">
 
-# Airlock
+# 🔒 Airlock
 
-**Stop running untrusted code on your host.**
+**Run untrusted code without trusting it.**
 
-Disposable dev environments in Docker or Podman — one command, zero host runtimes.
-
-<br>
+A single bash script that spins up a disposable, isolated container for any project — so `npm install` can't touch your SSH keys, dotfiles, or anything else that matters.
 
 [![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](#license)
-[![Version](https://img.shields.io/badge/version-0.0.5-green.svg)](version.txt)
-
-<br>
-
-[Install](#install) · [Usage](#usage) · [Config](#project-config) · [Security](#security)
+[![Version](https://img.shields.io/badge/version-0.0.7-green.svg)](version.txt)
+[![Shell](https://img.shields.io/badge/shell-bash-89e051.svg)](#)
 
 </div>
 
 ---
 
-## Why
+## The problem
 
-Cloning a repo should not mean trusting it.
+Every time you clone a repo and run `npm install`, `pip install`, or `go run`, you're giving that code full access to your machine. Post-install scripts, typosquatted packages, and supply-chain attacks don't need a phishing link — they just need you to trust a repo you skimmed for five minutes.
 
-AI makes it faster than ever to generate code and pull in dependencies — and easier to run `npm install` on a project you skimmed for five minutes. Supply-chain attacks, typosquatted packages, and post-install scripts can reach your home directory, SSH keys, and browser sessions without a phishing link.
+Your SSH keys, browser sessions, `.env` files, and home directory are all one `curl | bash` away from being compromised.
 
-If you use Linux, you care about freedom and security. Airlock lets you work normally inside a disposable container instead of giving every repo a seat on your host.
+## The fix
 
 ```
-  Host machine          Airlock              Container
- ┌─────────────┐      ┌─────────┐      ┌──────────────────┐
- │  your files │ ───▶ │ airlock │ ───▶ │ /workspace       │
- │  ~/.ssh  ✗  │      │  node   │      │ isolated runtime │
- └─────────────┘      └─────────┘      └──────────────────┘
+  Your Machine            Airlock              Container
+ ┌────────────────┐      ┌─────────┐      ┌──────────────────────┐
+ │  ~/.ssh        │  ✗   │         │      │  /workspace          │
+ │  ~/.config     │  ✗   │ airlock │ ───▶ │  your project files  │
+ │  ~/Documents   │  ✗   │         │      │  isolated runtime    │
+ │  ./project  ───│──────│─────────│─────▶│  no host access      │
+ └────────────────┘      └─────────┘      └──────────────────────┘
 ```
 
-**Get pwned less.**
+Airlock mounts only your **current directory** into a throwaway container. When you're done, the container is gone. Nothing leaks. Nothing persists.
 
-## Features
-
-- **One command** — `airlock node`, `airlock bun`, done
-- **4 built-in images** — distros and JS runtimes, each with tailored container settings
-- **Project config** — drop a `.airlock` file in any repo
-- **Docker & Podman** — auto-detected; install script can set up Podman for you
-- **Self-updating** — checks `version.txt` on startup and updates silently
-- **No host runtimes** — nothing to install on your machine except a container engine
+---
 
 ## Install
-
-Requires Docker or Podman.
 
 ```bash
 curl -fsSL https://cdn.jsdelivr.net/gh/besoeasy/airlock@main/install.sh | bash
 ```
 
-The install script places `airlock` in `/usr/local/bin`. If no container runtime is found, it installs Podman from your distro's official repos (Debian, Ubuntu, Fedora, Arch, openSUSE, and others).
+That's it. The script:
+- Downloads the `airlock` binary to `/usr/local/bin`
+- If Docker or Podman isn't found, **automatically installs Podman** for you (supports Debian, Ubuntu, Fedora, Arch, openSUSE, Alpine, RHEL, and more)
+
+No Node.js. No Python. No package manager. Just bash and a container runtime.
+
+---
 
 ## Usage
 
-Interactive menu:
+### Interactive menu
 
 ```bash
 airlock
 ```
 
-Or launch directly:
+Launches a numbered menu — pick your runtime, get a shell.
+
+### Direct launch
 
 ```bash
-airlock node          # Node.js LTS
-airlock bun           # Bun
-airlock python        # Python 3
-airlock go            # Go
-airlock rust          # Rust
-airlock debian        # Debian stable
+airlock node      # Node.js LTS shell
+airlock bun       # Bun shell
+airlock python    # Python 3 shell
+airlock go        # Go shell
+airlock rust      # Rust shell
+airlock debian    # Debian stable shell
+airlock alpine    # Alpine Linux shell
 ```
 
-Your current directory is mounted at `/workspace`. Work inside the container, exit when done — the environment is discarded.
+Your current directory is mounted at `/workspace` inside the container. Work as normal. Exit the shell — the container is destroyed. Nothing left behind.
 
-### Images
+### Available runtimes
 
-| Alias | Image |
-|-------|-------|
-| `debian` | `debian:stable` |
-| `alpine` | `alpine:latest` |
-| `node` | `node:lts` |
-| `bun` | `oven/bun:latest` |
-| `python` | `python:3` |
-| `go` | `golang:latest` |
-| `rust` | `rust:latest` |
+| Command | Image |
+|---------|-------|
+| `airlock debian` | `debian:stable` |
+| `airlock alpine` | `alpine:latest` |
+| `airlock node` | `node:lts` |
+| `airlock bun` | `oven/bun:latest` |
+| `airlock python` | `python:3` |
+| `airlock go` | `golang:latest` |
+| `airlock rust` | `rust:latest` |
 
-Run `airlock help` to print the current commands.
+Each image is pre-configured with sensible cache paths inside `/workspace` so tools like `npm`, `pip`, `cargo`, and `go` work correctly without writing to your host.
+
+---
 
 ## Project config
 
-Add a `.airlock` file to pin defaults for a repo:
+Drop a `.airlock` file in any repo to pin the runtime:
 
 ```ini
 image=node
 ```
 
-| Key | Description |
-|-----|-------------|
-| `image` | Alias from the table above (`debian`, `alpine`, `node`, `bun`) |
+Now `airlock` (with no arguments) in that directory will automatically launch the right environment — no flags, no thinking.
 
-Running `airlock` with no arguments picks up `.airlock` automatically.
+Great for open-source projects: commit `.airlock` so contributors get the correct runtime automatically.
 
-## Security
+---
 
-Airlock reduces risk by keeping development inside containers instead of on your host. It is **not** a guaranteed security boundary — always review unfamiliar code before running it.
+## Why it's just one bash script
+
+No daemon. No config system. No agent running in the background. Airlock is ~350 lines of bash that wraps Docker/Podman with the right flags. You can read the whole thing in 5 minutes, audit it, and trust it.
+
+It also **self-updates silently** — on each run it checks for a newer version and replaces itself if one exists.
+
+---
 
 ## Uninstall
 
 ```bash
-sudo rm -f /usr/local/bin/airlock /usr/local/bin/version.txt
+sudo rm -f /usr/local/bin/airlock
 ```
+
+---
 
 ## License
 
