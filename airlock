@@ -12,6 +12,41 @@ INSTALL_PATH="/usr/local/bin/airlock"
 CONFIG_IMAGE=""
 
 # ---------------------------------------------------------------------------
+# Trap-based temp-file cleanup — ensures no leaks even on error
+# ---------------------------------------------------------------------------
+_TMPFILES=()
+
+make_tmp() {
+    local f
+    f=$(mktemp)
+    _TMPFILES+=("$f")
+    echo "$f"
+}
+
+cleanup_tmpfiles() {
+    local f
+    for f in "${_TMPFILES[@]:-}"; do
+        rm -f "$f"
+    done
+}
+
+trap cleanup_tmpfiles EXIT
+
+# ---------------------------------------------------------------------------
+# Dependency checks
+# ---------------------------------------------------------------------------
+require_curl() {
+    if ! command -v curl >/dev/null 2>&1; then
+        echo "Error: curl is required but not installed."
+        echo "Install it with your package manager, e.g.:"
+        echo "  sudo apt-get install -y curl   # Debian/Ubuntu"
+        echo "  sudo dnf install -y curl       # Fedora/RHEL"
+        echo "  brew install curl              # macOS"
+        exit 1
+    fi
+}
+
+# ---------------------------------------------------------------------------
 # Portable realpath — works on macOS (BSD) and Linux
 # ---------------------------------------------------------------------------
 portable_realpath() {
@@ -20,7 +55,14 @@ portable_realpath() {
     elif command -v readlink >/dev/null 2>&1; then
         readlink -f "$1" 2>/dev/null || echo "$1"
     else
-        echo "$1"
+        # Last-resort: resolve via Python if available
+        if command -v python3 >/dev/null 2>&1; then
+            python3 -c "import os,sys; print(os.path.realpath(sys.argv[1]))" "$1" 2>/dev/null || echo "$1"
+        elif command -v python >/dev/null 2>&1; then
+            python -c "import os,sys; print(os.path.realpath(sys.argv[1]))" "$1" 2>/dev/null || echo "$1"
+        else
+            echo "$1"
+        fi
     fi
 }
 
@@ -111,7 +153,14 @@ load_airlock_config() {
         value="${value%"${value##*[![:space:]]}"}"
 
         case "$key" in
-            image) CONFIG_IMAGE="$value" ;;
+            image)
+                # Validate: only accept known image names
+                if is_known_image "$value"; then
+                    CONFIG_IMAGE="$value"
+                else
+                    echo "Warning: .airlock: unknown image '$value', ignoring."
+                fi
+                ;;
         esac
     done < .airlock
 
@@ -144,11 +193,23 @@ detect_container_runtime() {
 # ---------------------------------------------------------------------------
 # Launch helpers
 # ---------------------------------------------------------------------------
-run_command() {
+run_container() {
     local runtime="$1"
     local run_cmd="$2"
 
+    # Use 'eval' for quoting, but disable set -e for the container process itself
+    # so a non-zero exit from the shell inside the container (e.g. 'exit 1') doesn't
+    # propagate as a script error.
+    set +e
     eval "$runtime $run_cmd"
+    local exit_code=$?
+    set -e
+
+    # Codes 0, 130 (Ctrl-C) are considered clean exits from an interactive shell.
+    # Any other non-zero code is surfaced as a warning but not treated as fatal.
+    if [ $exit_code -ne 0 ] && [ $exit_code -ne 130 ]; then
+        echo "Container exited with code $exit_code."
+    fi
 }
 
 launch_named() {
@@ -164,7 +225,7 @@ launch_named() {
     fi
 
     run_args=$(get_image_run_args "$name")
-    run_command "$CONTAINER_RUNTIME" "$run_args"
+    run_container "$CONTAINER_RUNTIME" "$run_args"
 }
 
 launch_from_config() {
@@ -174,7 +235,7 @@ launch_from_config() {
     }
 
     if [ -z "$CONFIG_IMAGE" ]; then
-        echo ".airlock: image is required."
+        echo ".airlock: image is required (and must be a known image)."
         exit 1
     fi
 
@@ -192,18 +253,21 @@ install_binary() {
     local src="$1"
     local dest="$INSTALL_PATH"
 
+    # Verify the downloaded file looks like a valid airlock script before installing
+    if ! grep -q '^#!/usr/bin/env bash' "$src" 2>/dev/null; then
+        echo "Error: downloaded file does not appear to be a valid airlock script."
+        exit 1
+    fi
+
     if install -m 755 "$src" "$dest" 2>/dev/null; then
-        rm -f "$src"
         return 0
     fi
 
     if command -v sudo >/dev/null 2>&1; then
         sudo install -m 755 "$src" "$dest"
-        rm -f "$src"
         return 0
     fi
 
-    rm -f "$src"
     echo "Failed to install to $dest (permission denied)."
     echo "Run: sudo install -m 755 $src $dest"
     exit 1
@@ -213,10 +277,18 @@ download_and_install_airlock() {
     local version
     local tmp_file
 
-    tmp_file=$(mktemp)
-    curl -fsSL "$RAW_URL" -o "$tmp_file"
+    require_curl
+    tmp_file=$(make_tmp)
+    if ! curl -fsSL --max-time 30 "$RAW_URL" -o "$tmp_file"; then
+        echo "Error: failed to download airlock from $RAW_URL"
+        exit 1
+    fi
     chmod +x "$tmp_file"
     version=$(read_version "$tmp_file")
+    if [ -z "$version" ]; then
+        echo "Error: downloaded file has no version string — aborting update."
+        exit 1
+    fi
     install_binary "$tmp_file"
     echo "$version"
 }
@@ -242,18 +314,17 @@ check_for_update() {
         return 0
     fi
 
-    tmp_ver=$(mktemp)
+    require_curl
+
+    tmp_ver=$(make_tmp)
     if ! curl -fsSL --max-time 10 "$RAW_VER_URL" -o "$tmp_ver" 2>/dev/null; then
-        echo "Couldn't check for latest version."
-        rm -f "$tmp_ver"
+        # Silent: network unavailable is not a fatal condition
         return 0
     fi
 
     remote_version=$(tr -d '[:space:]' < "$tmp_ver")
-    rm -f "$tmp_ver"
 
     if [ -z "$remote_version" ]; then
-        echo "Couldn't check for latest version."
         return 0
     fi
 
@@ -261,18 +332,20 @@ check_for_update() {
         return 0
     fi
 
-    echo "Updating Airlock to $remote_version..."
+    echo "Updating Airlock $VERSION → $remote_version..."
     if ! download_and_install_airlock >/dev/null; then
-        echo "Couldn't update Airlock."
+        echo "Couldn't update Airlock. Continuing with current version."
         return 0
     fi
 
+    # Re-exec with the same arguments so the user's original command runs on the new version.
     exec "$INSTALL_PATH" "$@"
 }
 
 update_airlock() {
     local version
 
+    require_curl
     echo "Updating Airlock from GitHub..."
     version=$(download_and_install_airlock)
     echo "Airlock updated to $version."
@@ -288,9 +361,13 @@ update_airlock_local() {
     fi
 
     version=$(read_version ./airlock)
+    if [ -z "$version" ]; then
+        echo "Error: ./airlock has no version string."
+        exit 1
+    fi
     echo "Installing Airlock $version from ./airlock..."
 
-    tmp_file=$(mktemp)
+    tmp_file=$(make_tmp)
     cp ./airlock "$tmp_file"
     chmod +x "$tmp_file"
     install_binary "$tmp_file"
@@ -337,6 +414,9 @@ show_help() {
     echo
     echo "Run airlock in a directory with .airlock to use project settings."
     echo
+    echo "Environment variables:"
+    echo "  AIRLOCK_SKIP_UPDATE=1   Skip the auto-update check"
+    echo
     echo "Platform: $(uname -s)"
     echo
 }
@@ -379,6 +459,7 @@ menu() {
         7) launch_named rust ;;
         8) launch_named opencode ;;
         9) exit 0 ;;
+        *) echo "Invalid option. Please choose 1-9." ;;
         esac
 
     done
