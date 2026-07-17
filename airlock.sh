@@ -1,6 +1,21 @@
 #!/usr/bin/env bash
 set -e
 
+update() {
+    echo "Updating airlock..."
+    local tmp
+    tmp=$(mktemp)
+    if curl -fsSL https://raw.githubusercontent.com/besoeasy/airlock/main/airlock.sh -o "$tmp"; then
+        chmod +x "$tmp"
+        mv "$tmp" ~/.airlock.sh
+        echo "Airlock updated successfully."
+    else
+        rm -f "$tmp"
+        echo "Error: failed to download update." >&2
+        exit 1
+    fi
+}
+
 detect_runtime() {
     if command -v docker >/dev/null 2>&1; then
         echo "docker"
@@ -122,7 +137,9 @@ menu() {
     esac
 }
 
-if [ -n "${1:-}" ]; then
+if [ "${1:-}" = "--update" ]; then
+    update
+elif [ -n "${1:-}" ]; then
     launch "$1"
 else
     menu

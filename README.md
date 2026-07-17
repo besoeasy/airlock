@@ -6,7 +6,7 @@
 
 </div>
 
-## Install
+## Install & Update
 
 ```bash
 curl -fsSL https://raw.githubusercontent.com/besoeasy/airlock/main/airlock.sh -o ~/.airlock.sh && chmod +x ~/.airlock.sh && sed -i '/# airlock-start/,/# airlock-end/d' ~/.bashrc 2>/dev/null; printf '\n# airlock-start\nairlock() { bash ~/.airlock.sh "$@"; }\n# airlock-end\n' >> ~/.bashrc && source ~/.bashrc
@@ -15,9 +15,10 @@ curl -fsSL https://raw.githubusercontent.com/besoeasy/airlock/main/airlock.sh -o
 ## Usage
 
 ```bash
-airlock          # interactive menu
-airlock node     # direct launch
-airlock python   # direct launch
+airlock            # interactive menu
+airlock node       # direct launch
+airlock python     # direct launch
+airlock --update   # update to latest version
 ```
 
 ## Features
@@ -27,7 +28,7 @@ airlock python   # direct launch
 - No data leaks to host
 - Fork bomb protection (`--pids-limit 256`)
 - Auto-detects Docker or Podman
-- 9 runtimes: Node, Bun, Deno, Python, Go, Rust, Zig, Debian, Alpine
+- 10 runtimes: Node, Bun, Deno, Python, Go, Rust, Zig, Debian, Alpine, OpenCode
 
 ## Use cases
 
