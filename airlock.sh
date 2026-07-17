@@ -75,9 +75,15 @@ launch() {
                 -e HOME=/workspace \
                 alpine:latest sh
             ;;
+        opencode)
+            $rt run -it --rm --pids-limit 256 --network host \
+                -v "${PWD}:/workspace" -w /workspace \
+                -e HOME=/workspace \
+                ghcr.io/anomalyco/opencode
+            ;;
         *)
             echo "Unknown runtime: $name" >&2
-            echo "Runtimes: node, bun, deno, python, go, rust, zig, debian, alpine" >&2
+            echo "Runtimes: node, bun, deno, python, go, rust, zig, debian, alpine, opencode" >&2
             exit 1
             ;;
     esac
@@ -97,6 +103,7 @@ menu() {
     echo "7) Zig"
     echo "8) Debian"
     echo "9) Alpine"
+    echo "10) OpenCode"
     echo
     read -rp "Select runtime: " choice
 
@@ -110,6 +117,7 @@ menu() {
         7) launch zig ;;
         8) launch debian ;;
         9) launch alpine ;;
+        10) launch opencode ;;
         *) echo "Invalid option." >&2; exit 1 ;;
     esac
 }
