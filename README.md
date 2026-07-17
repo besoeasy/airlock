@@ -6,7 +6,7 @@
 
 Pick a runtime. Paste the command. Exit and it's gone.
 
-## Install
+## Run
 
 ```bash
 curl -fsSL https://raw.githubusercontent.com/besoeasy/airlock/main/airlock.sh | bash
