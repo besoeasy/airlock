@@ -109,6 +109,7 @@ menu() {
     rt=$(detect_runtime)
     echo "Airlock — $rt detected"
     echo
+    echo "0) Update"
     echo "1) Node.js"
     echo "2) Bun"
     echo "3) Deno"
@@ -123,6 +124,7 @@ menu() {
     read -rp "Select runtime: " choice
 
     case "$choice" in
+        0) update ;;
         1) launch node ;;
         2) launch bun ;;
         3) launch deno ;;
