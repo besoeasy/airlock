@@ -4,7 +4,7 @@
 
 **Run untrusted code without trusting it.**
 
-Pick a runtime. Paste the command. Exit and it's gone.
+</div>
 
 ## Install
 
@@ -12,11 +12,30 @@ Pick a runtime. Paste the command. Exit and it's gone.
 curl -fsSL https://raw.githubusercontent.com/besoeasy/airlock/main/airlock.sh -o ~/.airlock.sh && chmod +x ~/.airlock.sh && sed -i '/# airlock-start/,/# airlock-end/d' ~/.bashrc 2>/dev/null; printf '\n# airlock-start\nairlock() { bash ~/.airlock.sh "$@"; }\n# airlock-end\n' >> ~/.bashrc && source ~/.bashrc
 ```
 
-## Runtimes
+## Usage
 
-Node.js, Bun, Deno, Python, Go, Rust, Zig, Debian, Alpine
+```bash
+airlock          # interactive menu
+airlock node     # direct launch
+airlock python   # direct launch
+```
 
----
+## Features
+
+- Disposable containers — exit and everything is gone
+- Mounts your current directory at `/workspace`
+- No data leaks to host
+- Fork bomb protection (`--pids-limit 256`)
+- Auto-detects Docker or Podman
+- 9 runtimes: Node, Bun, Deno, Python, Go, Rust, Zig, Debian, Alpine
+
+## Use cases
+
+- Run `npm install` from a cloned repo without trusting it
+- Try a language or tool without installing it on your machine
+- Isolate build processes from your host
+- Test on a clean Linux environment
+- Run untrusted scripts safely
 
 ## License
 
