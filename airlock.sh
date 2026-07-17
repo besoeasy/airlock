@@ -19,58 +19,58 @@ launch() {
 
     case "$name" in
         node)
-            $rt run -it --rm --pids-limit 256 \
+            $rt run -it --rm --pids-limit 256 --network host \
                 -v "${PWD}:/workspace" -w /workspace \
                 -e npm_config_cache=/workspace/.npm-cache \
                 node:lts bash
             ;;
         bun)
-            $rt run -it --rm --pids-limit 256 \
+            $rt run -it --rm --pids-limit 256 --network host \
                 -v "${PWD}:/workspace" -w /workspace \
                 -e BUN_INSTALL_CACHE_DIR=/workspace/.bun-cache \
                 oven/bun:latest bash
             ;;
         deno)
-            $rt run -it --rm --pids-limit 256 \
+            $rt run -it --rm --pids-limit 256 --network host \
                 -v "${PWD}:/workspace" -w /workspace \
                 -e DENO_DIR=/workspace/.deno-cache \
                 --entrypoint /bin/bash \
                 denoland/deno:latest
             ;;
         python)
-            $rt run -it --rm --pids-limit 256 \
+            $rt run -it --rm --pids-limit 256 --network host \
                 -v "${PWD}:/workspace" -w /workspace \
                 -e PIP_CACHE_DIR=/workspace/.pip-cache \
                 -e HOME=/workspace \
                 python:3 bash
             ;;
         go)
-            $rt run -it --rm --pids-limit 256 \
+            $rt run -it --rm --pids-limit 256 --network host \
                 -v "${PWD}:/workspace" -w /workspace \
                 -e GOPATH=/workspace/.go -e HOME=/workspace \
                 golang:latest bash
             ;;
         rust)
-            $rt run -it --rm --pids-limit 256 \
+            $rt run -it --rm --pids-limit 256 --network host \
                 -v "${PWD}:/workspace" -w /workspace \
                 -e CARGO_HOME=/workspace/.cargo -e HOME=/workspace \
                 rust:latest bash
             ;;
         zig)
-            $rt run -it --rm --pids-limit 256 \
+            $rt run -it --rm --pids-limit 256 --network host \
                 -v "${PWD}:/workspace" -w /workspace \
                 -e ZIG_GLOBAL_CACHE_DIR=/workspace/.zig-cache \
                 --entrypoint /bin/sh \
                 euantorano/zig:latest
             ;;
         debian)
-            $rt run -it --rm --pids-limit 256 \
+            $rt run -it --rm --pids-limit 256 --network host \
                 -v "${PWD}:/workspace" -w /workspace \
                 -e HOME=/workspace \
                 debian:stable bash
             ;;
         alpine)
-            $rt run -it --rm --pids-limit 256 \
+            $rt run -it --rm --pids-limit 256 --network host \
                 -v "${PWD}:/workspace" -w /workspace \
                 -e HOME=/workspace \
                 alpine:latest sh
