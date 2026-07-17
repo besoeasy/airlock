@@ -6,6 +6,14 @@
 
 Pick a runtime. Paste the command. Exit and it's gone.
 
+## Install
+
+```bash
+curl -fsSL https://raw.githubusercontent.com/besoeasy/airlock/main/airlock.sh | bash -s -- node
+```
+
+Replace `node` with any runtime: `bun`, `deno`, `python`, `go`, `rust`, `zig`, `debian`, `alpine`.
+
 </div>
 
 ---
