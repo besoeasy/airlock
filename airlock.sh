@@ -84,7 +84,9 @@ launch() {
 }
 
 menu() {
-    echo "Airlock"
+    local rt
+    rt=$(detect_runtime)
+    echo "Airlock — $rt detected"
     echo
     echo "1) Node.js"
     echo "2) Bun"
