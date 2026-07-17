@@ -9,10 +9,10 @@ Pick a runtime. Paste the command. Exit and it's gone.
 ## Install
 
 ```bash
-curl -fsSL https://raw.githubusercontent.com/besoeasy/airlock/main/airlock.sh | bash -s -- node
+curl -fsSL https://raw.githubusercontent.com/besoeasy/airlock/main/airlock.sh | bash
 ```
 
-Replace `node` with any runtime: `bun`, `deno`, `python`, `go`, `rust`, `zig`, `debian`, `alpine`.
+Pick a runtime from the menu. Or pass it directly: `bash -s -- node`
 
 </div>
 
