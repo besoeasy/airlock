@@ -1,15 +1,13 @@
 <div align="center">
 
-# 🔒 Airlock
+# Airlock
 
 **Run untrusted code without trusting it.**
 
-A single bash script that spins up a disposable, isolated container for any project — so `npm install` can't touch your SSH keys, dotfiles, or anything else that matters.
+Copy a command. Get a hardened shell. Nothing touches your machine.
 
 [![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](#license)
-[![Version](https://img.shields.io/badge/version-0.0.8-green.svg)](version.txt)
 [![Platform](https://img.shields.io/badge/platform-Linux%20%7C%20macOS-lightgrey.svg)](#)
-[![Shell](https://img.shields.io/badge/shell-bash-89e051.svg)](#)
 
 </div>
 
@@ -17,130 +15,295 @@ A single bash script that spins up a disposable, isolated container for any proj
 
 ## The problem
 
-Every time you clone a repo and run `npm install`, `pip install`, or `go run`, you're giving that code full access to your machine. Post-install scripts, typosquatted packages, and supply-chain attacks don't need a phishing link — they just need you to trust a repo you skimmed for five minutes.
-
-Your SSH keys, browser sessions, `.env` files, and home directory are all one `curl | bash` away from being compromised.
+Every time you run `npm install`, `pip install`, or `go run` in a cloned repo, that code gets full access to your SSH keys, dotfiles, `.env` files, and everything else on your machine.
 
 ## The fix
 
-```
-  Your Machine            Airlock              Container
- ┌────────────────┐      ┌─────────┐      ┌──────────────────────┐
- │  ~/.ssh        │  ✗   │         │      │  /workspace          │
- │  ~/.config     │  ✗   │ airlock │ ───▶ │  your project files  │
- │  ~/Documents   │  ✗   │         │      │  isolated runtime    │
- │  ./project  ───│──────│─────────│─────▶│  no host access      │
- └────────────────┘      └─────────┘      └──────────────────────┘
-```
+Airlock gives you copy-pasteable commands that spin up a disposable, hardened container. Your current directory is mounted at `/workspace`. Exit the shell — the container is destroyed.
 
-Airlock mounts only your **current directory** into a throwaway container. When you're done, the container is gone. Nothing leaks. Nothing persists.
+```
+  Your Machine              Airlock              Container
+ ┌────────────────┐        ┌─────────┐        ┌──────────────────────┐
+ │  ~/.ssh        │    x   │         │        │  /workspace          │
+ │  ~/.config     │    x   │ airlock │ ─────▶ │  your project files  │
+ │  ~/Documents   │    x   │         │        │  isolated runtime    │
+ │  ./project  ───│────────│─────────│───────▶│  no host access      │
+ └────────────────┘        └─────────┘        └──────────────────────┘
+```
 
 ---
 
-## Install
+## Quick start
+
+Pick your runtime. Paste the command. You're in.
+
+### Node.js
 
 ```bash
-curl -fsSL https://cdn.jsdelivr.net/gh/besoeasy/airlock@main/install.sh | bash
+docker run -it --rm \
+  --read-only --tmpfs /tmp:exec \
+  --cap-drop ALL \
+  --security-opt no-new-privileges \
+  --pids-limit 256 \
+  -v "${PWD}:/workspace" \
+  -w /workspace \
+  -e npm_config_cache=/workspace/.npm-cache \
+  -e NODE_ENV=development \
+  node:lts bash
 ```
 
-That's it. The script:
-- Downloads the `airlock` binary to `/usr/local/bin`
-- If Docker or Podman isn't found, **automatically installs Podman** for you
-  - **Linux**: supports Debian, Ubuntu, Fedora, Arch, openSUSE, Alpine, RHEL, and more
-  - **macOS**: installs via Homebrew and initializes a Podman machine, or guides you to Docker Desktop
-
-### macOS prerequisite
-
-Airlock works on macOS with **Docker Desktop** or **Podman Desktop** — both are free:
-
-| Option | Link |
-|--------|------|
-| Docker Desktop | https://www.docker.com/products/docker-desktop/ |
-| Podman Desktop | https://podman-desktop.io/ |
-| Homebrew + Podman | `brew install podman && podman machine init && podman machine start` |
-
-No Node.js. No Python. No package manager. Just bash and a container runtime.
-
----
-
-## Usage
-
-### Interactive menu
+### Bun
 
 ```bash
-airlock
+docker run -it --rm \
+  --read-only --tmpfs /tmp:exec \
+  --cap-drop ALL \
+  --security-opt no-new-privileges \
+  --pids-limit 256 \
+  -v "${PWD}:/workspace" \
+  -w /workspace \
+  -e BUN_INSTALL_CACHE_DIR=/workspace/.bun-cache \
+  oven/bun:latest bash
 ```
 
-Launches a numbered menu — pick your runtime, get a shell.
-
-### Direct launch
+### Deno
 
 ```bash
-airlock node      # Node.js LTS shell
-airlock bun       # Bun shell
-airlock deno      # Deno shell
-airlock python    # Python 3 shell
-airlock go        # Go shell
-airlock rust      # Rust shell
-airlock zig       # Zig shell
-airlock debian    # Debian stable shell
-airlock alpine    # Alpine Linux shell
+docker run -it --rm \
+  --read-only --tmpfs /tmp:exec \
+  --cap-drop ALL \
+  --security-opt no-new-privileges \
+  --pids-limit 256 \
+  -v "${PWD}:/workspace" \
+  -w /workspace \
+  -e DENO_DIR=/workspace/.deno-cache \
+  --entrypoint /bin/bash \
+  denoland/deno:latest
 ```
 
-Your current directory is mounted at `/workspace` inside the container. Work as normal. Exit the shell — the container is destroyed. Nothing left behind.
-
-### Available runtimes
-
-| Command | Image |
-|---------|-------|
-| `airlock debian` | `debian:stable` |
-| `airlock alpine` | `alpine:latest` |
-| `airlock node` | `node:lts` |
-| `airlock bun` | `oven/bun:latest` |
-| `airlock deno` | `denoland/deno:latest` |
-| `airlock python` | `python:3` |
-| `airlock go` | `golang:latest` |
-| `airlock rust` | `rust:latest` |
-| `airlock zig` | `euantorano/zig:latest` |
-
-Each image is pre-configured with sensible cache paths inside `/workspace` so tools like `npm`, `deno`, `pip`, `cargo`, `go`, and `zig` work correctly without writing to your host.
-
----
-
-## Project config
-
-Drop a `.airlock` file in any repo to pin the runtime:
-
-```ini
-image=node
-```
-
-Now `airlock` (with no arguments) in that directory will automatically launch the right environment — no flags, no thinking.
-
-Great for open-source projects: commit `.airlock` so contributors get the correct runtime automatically.
-
----
-
-## Why it's just one bash script
-
-No daemon. No config system. No agent running in the background. Airlock is ~350 lines of bash that wraps Docker/Podman with the right flags. You can read the whole thing in 5 minutes, audit it, and trust it.
-
-It also **self-updates silently** — on each run it checks for a newer version and replaces itself if one exists.
-
-## Platform support
-
-| Platform | Status | Notes |
-|----------|--------|-------|
-| Linux | ✅ Full support | Auto-installs Podman if needed |
-| macOS | ✅ Full support | Requires Docker Desktop or Podman Desktop |
-
----
-
-## Uninstall
+### Python
 
 ```bash
-sudo rm -f /usr/local/bin/airlock
+docker run -it --rm \
+  --read-only --tmpfs /tmp:exec \
+  --cap-drop ALL \
+  --security-opt no-new-privileges \
+  --pids-limit 256 \
+  -v "${PWD}:/workspace" \
+  -w /workspace \
+  -e PIP_CACHE_DIR=/workspace/.pip-cache \
+  -e HOME=/workspace \
+  python:3 bash
 ```
+
+### Go
+
+```bash
+docker run -it --rm \
+  --read-only --tmpfs /tmp:exec \
+  --cap-drop ALL \
+  --security-opt no-new-privileges \
+  --pids-limit 256 \
+  -v "${PWD}:/workspace" \
+  -w /workspace \
+  -e GOPATH=/workspace/.go \
+  -e HOME=/workspace \
+  golang:latest bash
+```
+
+### Rust
+
+```bash
+docker run -it --rm \
+  --read-only --tmpfs /tmp:exec \
+  --cap-drop ALL \
+  --security-opt no-new-privileges \
+  --pids-limit 256 \
+  -v "${PWD}:/workspace" \
+  -w /workspace \
+  -e CARGO_HOME=/workspace/.cargo \
+  -e HOME=/workspace \
+  rust:latest bash
+```
+
+### Zig
+
+```bash
+docker run -it --rm \
+  --read-only --tmpfs /tmp:exec \
+  --cap-drop ALL \
+  --security-opt no-new-privileges \
+  --pids-limit 256 \
+  -v "${PWD}:/workspace" \
+  -w /workspace \
+  -e ZIG_GLOBAL_CACHE_DIR=/workspace/.zig-cache \
+  --entrypoint /bin/sh \
+  euantorano/zig:latest
+```
+
+### Debian
+
+```bash
+docker run -it --rm \
+  --read-only --tmpfs /tmp:exec \
+  --cap-drop ALL \
+  --security-opt no-new-privileges \
+  --pids-limit 256 \
+  -v "${PWD}:/workspace" \
+  -w /workspace \
+  -e HOME=/workspace \
+  debian:stable bash
+```
+
+### Alpine
+
+```bash
+docker run -it --rm \
+  --read-only --tmpfs /tmp:exec \
+  --cap-drop ALL \
+  --security-opt no-new-privileges \
+  --pids-limit 256 \
+  -v "${PWD}:/workspace" \
+  -w /workspace \
+  -e HOME=/workspace \
+  alpine:latest sh
+```
+
+---
+
+## Podman
+
+Every command above works with Podman. Replace `docker` with `podman`:
+
+```bash
+podman run -it --rm \
+  --read-only --tmpfs /tmp:exec \
+  --cap-drop ALL \
+  --security-opt no-new-privileges \
+  --pids-limit 256 \
+  -v "${PWD}:/workspace" \
+  -w /workspace \
+  -e npm_config_cache=/workspace/.npm-cache \
+  node:lts bash
+```
+
+---
+
+## What the flags do
+
+| Flag | Purpose |
+|------|---------|
+| `--read-only` | Container filesystem is read-only. Only `/workspace` and `/tmp` are writable. |
+| `--tmpfs /tmp:exec` | Writable `/tmp` for package managers and build tools. |
+| `--cap-drop ALL` | Drops all Linux capabilities. Container can't do privileged operations. |
+| `--security-opt no-new-privileges` | Prevents processes from gaining privileges via setuid/setgid binaries. |
+| `--pids-limit 256` | Fork bomb protection. Caps process count at 256. |
+| `-v "${PWD}:/workspace"` | Mounts your current directory into the container. |
+| `-w /workspace` | Sets the working directory inside the container. |
+| `--rm` | Container is deleted when you exit. Nothing persists. |
+
+---
+
+## Resource limits
+
+Add memory and CPU limits if you want extra protection:
+
+```bash
+docker run -it --rm \
+  --read-only --tmpfs /tmp:exec \
+  --cap-drop ALL \
+  --security-opt no-new-privileges \
+  --pids-limit 256 \
+  --memory 4g \
+  --cpus 2 \
+  -v "${PWD}:/workspace" \
+  -w /workspace \
+  node:lts bash
+```
+
+---
+
+## Network access
+
+By default, containers have network access (needed for `npm install`, `pip install`, etc.). To block network access entirely:
+
+```bash
+docker run -it --rm \
+  --read-only --tmpfs /tmp:exec \
+  --cap-drop ALL \
+  --security-opt no-new-privileges \
+  --pids-limit 256 \
+  --network none \
+  -v "${PWD}:/workspace" \
+  -w /workspace \
+  node:lts bash
+```
+
+---
+
+## Run a command without a shell
+
+Execute a single command and exit:
+
+```bash
+docker run --rm \
+  --read-only --tmpfs /tmp:exec \
+  --cap-drop ALL \
+  --security-opt no-new-privileges \
+  --pids-limit 256 \
+  -v "${PWD}:/workspace" \
+  -w /workspace \
+  -e npm_config_cache=/workspace/.npm-cache \
+  node:lts npm test
+```
+
+---
+
+## Save as an alias
+
+Add to your `~/.bashrc` or `~/.zshrc`:
+
+```bash
+airlock-node() {
+  docker run -it --rm \
+    --read-only --tmpfs /tmp:exec \
+    --cap-drop ALL \
+    --security-opt no-new-privileges \
+    --pids-limit 256 \
+    -v "${PWD}:/workspace" \
+    -w /workspace \
+    -e npm_config_cache=/workspace/.npm-cache \
+    node:lts bash
+}
+
+airlock-python() {
+  docker run -it --rm \
+    --read-only --tmpfs /tmp:exec \
+    --cap-drop ALL \
+    --security-opt no-new-privileges \
+    --pids-limit 256 \
+    -v "${PWD}:/workspace" \
+    -w /workspace \
+    -e PIP_CACHE_DIR=/workspace/.pip-cache \
+    -e HOME=/workspace \
+    python:3 bash
+}
+
+airlock-go() {
+  docker run -it --rm \
+    --read-only --tmpfs /tmp:exec \
+    --cap-drop ALL \
+    --security-opt no-new-privileges \
+    --pids-limit 256 \
+    -v "${PWD}:/workspace" \
+    -w /workspace \
+    -e GOPATH=/workspace/.go \
+    -e HOME=/workspace \
+    golang:latest bash
+}
+```
+
+Then run `airlock-node`, `airlock-python`, or `airlock-go` from any directory.
 
 ---
 
