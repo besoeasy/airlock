@@ -30,11 +30,40 @@ sudo curl -fsSL https://raw.githubusercontent.com/besoeasy/airlock/main/airlock 
 ## Usage
 
 ```bash
-airlock            # interactive category menu with repository and version
+airlock            # launches .airlock if present, or opens interactive menu
 airlock [runtime]  # directly launch a specific runtime (e.g. airlock python)
 airlock --version  # show local and remote versions
 airlock --help     # show help and available runtimes
 ```
+
+## Configuration (`.airlock`)
+
+Drop a `.airlock` file in your repository to pre-configure your runtime environment. When `.airlock` is present, running `airlock` automatically launches the container with your settings and **skips all interactive questions**:
+
+```ini
+# .airlock
+runtime=node
+ports=3000 8080
+env=PORT=3000
+env=NODE_ENV=development
+```
+
+Airlock also supports single-token `.airlock` files (similar to `.nvmrc` or `.python-version`):
+
+```text
+python
+```
+
+### Supported Keys
+
+| Key | Description | Example |
+|---|---|---|
+| `runtime` | Target runtime (or single-token name) | `runtime=node` |
+| `ports` | Space-separated ports to forward | `ports=3000 8080` |
+| `network` | Container network mode | `network=host` or `network=bridge` |
+| `user` | Container user override | `user=1000:1000` or `user=root` |
+| `env` | Environment variable (repeatable) | `env=DEBUG=express:*` |
+| `selinux` | SELinux `:z` flag override | `selinux=1` or `selinux=0` |
 
 ## Features
 

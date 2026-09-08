@@ -1,0 +1,5 @@
+# Python FastAPI Web Application
+runtime=python
+ports=8000
+env=PORT=8000
+env=PYTHONUNBUFFERED=1

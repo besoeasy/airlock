@@ -1,0 +1,5 @@
+# Rust CLI / Systems Application
+runtime=rust
+network=host
+user=1000:1000
+env=RUST_BACKTRACE=1

@@ -27,6 +27,13 @@ show_version() {
     if [ -n "${AIRLOCK_USER:-}" ]; then
         echo "User mapping: $AIRLOCK_USER"
     fi
+    if [ "$CFG_FOUND" = true ]; then
+        if [ -n "$CFG_RUNTIME" ]; then
+            echo "Config: .airlock (runtime: $CFG_RUNTIME)"
+        else
+            echo "Config: .airlock"
+        fi
+    fi
 }
 
 ensure_path() {
@@ -63,7 +70,100 @@ detect_runtime() {
     fi
 }
 
+CFG_FOUND=false
+CFG_RUNTIME=""
+CFG_PORTS=""
+CFG_NETWORK=""
+CFG_USER=""
+CFG_SELINUX=""
+declare -a CFG_ENVS=()
+
+load_airlock_config() {
+    local config_file="${PWD}/.airlock"
+    [ -f "$config_file" ] || return 0
+    CFG_FOUND=true
+
+    while IFS= read -r line || [ -n "$line" ]; do
+        # Trim leading and trailing whitespace
+        line="${line#"${line%%[![:space:]]*}"}"
+        line="${line%"${line##*[![:space:]]}"}"
+
+        [ -z "$line" ] && continue
+        [[ "$line" == \#* ]] && continue
+
+        if [[ "$line" == *"="* ]]; then
+            local key="${line%%=*}"
+            local val="${line#*=}"
+
+            key="${key#"${key%%[![:space:]]*}"}"
+            key="${key%"${key##*[![:space:]]}"}"
+            key="$(echo "$key" | tr '[:upper:]' '[:lower:]')"
+
+            val="${val#"${val%%[![:space:]]*}"}"
+            val="${val%"${val##*[![:space:]]}"}"
+            case "$val" in
+                \"*\") val="${val#\"}"; val="${val%\"}" ;;
+                \'*\') val="${val#\'}"; val="${val%\'}" ;;
+            esac
+
+            case "$key" in
+                runtime)
+                    CFG_RUNTIME="$val"
+                    ;;
+                ports|port)
+                    CFG_PORTS="$val"
+                    ;;
+                network|net)
+                    CFG_NETWORK="$val"
+                    ;;
+                user)
+                    CFG_USER="$val"
+                    ;;
+                selinux)
+                    CFG_SELINUX="$val"
+                    ;;
+                env)
+                    CFG_ENVS+=("$val")
+                    ;;
+            esac
+        else
+            if [ -z "$CFG_RUNTIME" ]; then
+                CFG_RUNTIME="$line"
+            fi
+        fi
+    done < "$config_file"
+
+    if [ -n "$CFG_SELINUX" ] && [ -z "${AIRLOCK_SELINUX:-}" ]; then
+        AIRLOCK_SELINUX="$CFG_SELINUX"
+    fi
+    if [ -n "$CFG_USER" ] && [ -z "${AIRLOCK_USER:-}" ]; then
+        AIRLOCK_USER="$CFG_USER"
+    fi
+}
+
 get_network_args() {
+    if [ "$CFG_FOUND" = true ]; then
+        if [ -n "$CFG_PORTS" ]; then
+            local args=""
+            local p
+            for p in $CFG_PORTS; do
+                args="$args -p $p:$p"
+            done
+            echo "$args"
+            return
+        elif [ -n "$CFG_NETWORK" ]; then
+            if [ "$CFG_NETWORK" = "host" ]; then
+                echo "--network host"
+            else
+                echo "--network $CFG_NETWORK"
+            fi
+            return
+        else
+            echo "--network host"
+            return
+        fi
+    fi
+
     local ports
     read -rp "Ports to open (space-separated, e.g. 3000 8080) or Enter for --network host: " ports
 
@@ -172,8 +272,16 @@ launch() {
             ;;
     esac
 
+    local -a env_args=()
+    if [ "${#CFG_ENVS[@]}" -gt 0 ]; then
+        for env_item in "${CFG_ENVS[@]}"; do
+            env_args+=(-e "$env_item")
+        done
+    fi
+
     $rt run -it --rm --pids-limit 256 $net_args \
         "${user_args[@]}" \
+        "${env_args[@]}" \
         -v "$vol_mount" -w /workspace \
         "${image_args[@]}"
 }
@@ -192,6 +300,13 @@ show_header() {
         echo "User:    $AIRLOCK_USER"
     elif [ "$rt" = "docker" ] && [ "$(id -u)" -ne 0 ]; then
         printf 'User:    %s:%s (host mapping active)\n' "$(id -u)" "$(id -g)"
+    fi
+    if [ "$CFG_FOUND" = true ]; then
+        if [ -n "$CFG_RUNTIME" ]; then
+            printf 'Config:  .airlock (runtime: %s)\n' "$CFG_RUNTIME"
+        else
+            echo "Config:  .airlock"
+        fi
     fi
     echo "Project: $PROJECT_URL"
     if [ "$remote_version" != "unavailable" ] && [ -n "$remote_version" ] && [ "$remote_version" != "$VERSION" ]; then
@@ -347,12 +462,26 @@ show_help() {
     echo "  AI Agents: aider, opencode"
     echo "  Security:  kali, trivy"
     echo
+    echo "Configuration file (.airlock):"
+    echo "  When a .airlock file is present in the current directory, Airlock"
+    echo "  automatically launches the container with your configuration"
+    echo "  and skips interactive questions."
+    echo
+    echo "  Supported keys in .airlock:"
+    echo "    runtime=<name>       Container runtime (or single-token name, e.g. node)"
+    echo "    ports=<port ...>     Space-separated ports to expose (e.g. 3000 8080)"
+    echo "    network=<mode>       Network mode (host, bridge, none; default: host)"
+    echo "    user=<uid:gid>       Override container user"
+    echo "    env=<KEY=VALUE>      Environment variable (repeatable)"
+    echo "    selinux=1|0          Enable or disable SELinux :z volume relabeling"
+    echo
     echo "Environment variables:"
     echo "  AIRLOCK_SELINUX=1|0      Force enable or disable SELinux :z volume relabeling"
     echo "  AIRLOCK_USER=<uid:gid>   Override container user (defaults to host user for Docker)"
 }
 
 ensure_path
+load_airlock_config
 
 if [ "${1:-}" = "--version" ] || [ "${1:-}" = "-v" ]; then
     show_version
@@ -369,6 +498,9 @@ elif [ -n "${1:-}" ]; then
             exit 1
             ;;
     esac
+elif [ -n "$CFG_RUNTIME" ]; then
+    echo "Found .airlock configuration (runtime: $CFG_RUNTIME)"
+    launch "$CFG_RUNTIME"
 else
     menu
 fi

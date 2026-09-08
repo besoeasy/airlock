@@ -1,0 +1,5 @@
+# Go Microservice
+runtime=go
+ports=8080
+env=CGO_ENABLED=0
+env=PORT=8080
