@@ -24,6 +24,9 @@ show_version() {
     if is_selinux_enabled; then
         echo "SELinux: enabled (:z flag active)"
     fi
+    if [ -n "${AIRLOCK_USER:-}" ]; then
+        echo "User mapping: $AIRLOCK_USER"
+    fi
 }
 
 ensure_path() {
@@ -86,6 +89,15 @@ launch() {
     local vol_mount="${PWD}:/workspace"
     if is_selinux_enabled; then
         vol_mount="${vol_mount}:z"
+    fi
+
+    local -a user_args=()
+    if [ -n "${AIRLOCK_USER:-}" ]; then
+        if [ "$AIRLOCK_USER" != "0" ] && [ "$AIRLOCK_USER" != "root" ]; then
+            user_args=(--user "$AIRLOCK_USER" -e HOME=/tmp)
+        fi
+    elif [ "$rt" = "docker" ] && [ "$(id -u)" -ne 0 ]; then
+        user_args=(--user "$(id -u):$(id -g)" -e HOME=/tmp)
     fi
 
     local -a image_args
@@ -161,6 +173,7 @@ launch() {
     esac
 
     $rt run -it --rm --pids-limit 256 $net_args \
+        "${user_args[@]}" \
         -v "$vol_mount" -w /workspace \
         "${image_args[@]}"
 }
@@ -174,6 +187,11 @@ show_header() {
     printf 'Runtime: %s\n' "$rt"
     if is_selinux_enabled; then
         echo "SELinux: enabled (:z flag active)"
+    fi
+    if [ -n "${AIRLOCK_USER:-}" ]; then
+        echo "User:    $AIRLOCK_USER"
+    elif [ "$rt" = "docker" ] && [ "$(id -u)" -ne 0 ]; then
+        printf 'User:    %s:%s (host mapping active)\n' "$(id -u)" "$(id -g)"
     fi
     echo "Project: $PROJECT_URL"
     if [ "$remote_version" != "unavailable" ] && [ -n "$remote_version" ] && [ "$remote_version" != "$VERSION" ]; then
@@ -330,7 +348,8 @@ show_help() {
     echo "  Security:  kali, trivy"
     echo
     echo "Environment variables:"
-    echo "  AIRLOCK_SELINUX=1|0   Force enable or disable SELinux :z volume relabeling"
+    echo "  AIRLOCK_SELINUX=1|0      Force enable or disable SELinux :z volume relabeling"
+    echo "  AIRLOCK_USER=<uid:gid>   Override container user (defaults to host user for Docker)"
 }
 
 ensure_path

@@ -40,6 +40,7 @@ airlock --help     # show help and available runtimes
 
 - Disposable containers — exit and everything is gone
 - Mounts your current directory at `/workspace`
+- Automatic user mapping for Docker — prevents `root:root` file ownership on host
 - No data leaks to host
 - Fork bomb protection (`--pids-limit 256`)
 - Auto-detects Docker or Podman (Podman recommended)
@@ -72,6 +73,9 @@ Airlock runs on any operating system equipped with **Podman** or **Docker**:
 
 > [!NOTE]
 > **SELinux out of the box:** On SELinux-enforcing hosts like **Fedora** and **RHEL**, Airlock automatically mounts host directories with the `:z` flag so containers have proper access without `Permission denied` errors. You can also manually control this behavior via `AIRLOCK_SELINUX=1` (force enable) or `AIRLOCK_SELINUX=0` (force disable).
+
+> [!NOTE]
+> **Host user mapping:** When using Docker, Airlock automatically runs containers with your host user and group IDs (`--user $(id -u):$(id -g)`), ensuring that files, build artifacts, and dependencies created in `/workspace` are owned by you instead of `root:root`. You can override this behavior using `AIRLOCK_USER=root` or `AIRLOCK_USER=<uid:gid>`.
 
 ## Use cases
 
