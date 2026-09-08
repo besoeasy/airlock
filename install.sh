@@ -61,8 +61,14 @@ chmod +x "$TMP_FILE"
 # 4. Install binary
 if [ "$USE_SUDO" = true ]; then
     sudo mv "$TMP_FILE" "$TARGET_BIN"
+    if command -v restorecon >/dev/null 2>&1; then
+        sudo restorecon "$TARGET_BIN" 2>/dev/null || true
+    fi
 else
     mv "$TMP_FILE" "$TARGET_BIN"
+    if command -v restorecon >/dev/null 2>&1; then
+        restorecon "$TARGET_BIN" 2>/dev/null || true
+    fi
 fi
 
 # 5. Check PATH if installed to ~/.local/bin

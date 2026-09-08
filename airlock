@@ -21,6 +21,9 @@ show_version() {
 
     echo "Airlock version: $VERSION"
     echo "Remote version: $remote_version"
+    if is_selinux_enabled; then
+        echo "SELinux: enabled (:z flag active)"
+    fi
 }
 
 ensure_path() {
@@ -30,6 +33,21 @@ ensure_path() {
     fi
 }
 
+is_selinux_enabled() {
+    if [ "${AIRLOCK_SELINUX:-}" = "0" ] || [ "${AIRLOCK_SELINUX:-}" = "false" ]; then
+        return 1
+    fi
+    if [ "${AIRLOCK_SELINUX:-}" = "1" ] || [ "${AIRLOCK_SELINUX:-}" = "true" ]; then
+        return 0
+    fi
+    if command -v selinuxenabled >/dev/null 2>&1; then
+        selinuxenabled
+    elif [ -f /sys/fs/selinux/enforce ]; then
+        return 0
+    else
+        return 1
+    fi
+}
 
 detect_runtime() {
     if command -v podman >/dev/null 2>&1; then
@@ -65,109 +83,75 @@ launch() {
     local net_args
     net_args=$(get_network_args)
 
+    local vol_mount="${PWD}:/workspace"
+    if is_selinux_enabled; then
+        vol_mount="${vol_mount}:z"
+    fi
+
+    local -a image_args
     case "$name" in
         aider)
-            $rt run -it --rm --pids-limit 256 $net_args \
-                -v "${PWD}:/workspace" -w /workspace \
-                -e OPENAI_API_KEY -e ANTHROPIC_API_KEY -e GEMINI_API_KEY -e OPENROUTER_API_KEY -e DEEPSEEK_API_KEY \
+            image_args=(
+                -e OPENAI_API_KEY -e ANTHROPIC_API_KEY -e GEMINI_API_KEY -e OPENROUTER_API_KEY -e DEEPSEEK_API_KEY
                 docker.io/paulgauthier/aider
+            )
             ;;
         alpine)
-            $rt run -it --rm --pids-limit 256 $net_args \
-                -v "${PWD}:/workspace" -w /workspace \
-                docker.io/library/alpine:latest sh
+            image_args=(docker.io/library/alpine:latest sh)
             ;;
         archlinux|arch)
-            $rt run -it --rm --pids-limit 256 $net_args \
-                -v "${PWD}:/workspace" -w /workspace \
-                docker.io/library/archlinux:latest bash
+            image_args=(docker.io/library/archlinux:latest bash)
             ;;
         bun)
-            $rt run -it --rm --pids-limit 256 $net_args \
-                -v "${PWD}:/workspace" -w /workspace \
-                docker.io/oven/bun:latest bash
+            image_args=(docker.io/oven/bun:latest bash)
             ;;
         c|cpp|gcc)
-            $rt run -it --rm --pids-limit 256 $net_args \
-                -v "${PWD}:/workspace" -w /workspace \
-                docker.io/library/gcc:latest bash
+            image_args=(docker.io/library/gcc:latest bash)
             ;;
         debian)
-            $rt run -it --rm --pids-limit 256 $net_args \
-                -v "${PWD}:/workspace" -w /workspace \
-                docker.io/library/debian:stable bash
+            image_args=(docker.io/library/debian:stable bash)
             ;;
         deno)
-            $rt run -it --rm --pids-limit 256 $net_args \
-                -v "${PWD}:/workspace" -w /workspace \
-                --entrypoint /bin/bash \
-                docker.io/denoland/deno:latest
+            image_args=(--entrypoint /bin/bash docker.io/denoland/deno:latest)
             ;;
         fedora)
-            $rt run -it --rm --pids-limit 256 $net_args \
-                -v "${PWD}:/workspace" -w /workspace \
-                docker.io/library/fedora:latest bash
+            image_args=(docker.io/library/fedora:latest bash)
             ;;
         go)
-            $rt run -it --rm --pids-limit 256 $net_args \
-                -v "${PWD}:/workspace" -w /workspace \
-                docker.io/library/golang:latest bash
+            image_args=(docker.io/library/golang:latest bash)
             ;;
         kali|kalilinux)
-            $rt run -it --rm --pids-limit 256 $net_args \
-                -v "${PWD}:/workspace" -w /workspace \
-                docker.io/kalilinux/kali-rolling:latest bash
+            image_args=(docker.io/kalilinux/kali-rolling:latest bash)
             ;;
         nix)
-            $rt run -it --rm --pids-limit 256 $net_args \
-                -v "${PWD}:/workspace" -w /workspace \
-                docker.io/nixos/nix:latest sh
+            image_args=(docker.io/nixos/nix:latest sh)
             ;;
         node)
-            $rt run -it --rm --pids-limit 256 $net_args \
-                -v "${PWD}:/workspace" -w /workspace \
-                docker.io/library/node:lts bash
+            image_args=(docker.io/library/node:lts bash)
             ;;
         opencode)
-            $rt run -it --rm --pids-limit 256 $net_args \
-                -v "${PWD}:/workspace" -w /workspace \
-                ghcr.io/anomalyco/opencode
+            image_args=(ghcr.io/anomalyco/opencode)
             ;;
         php)
-            $rt run -it --rm --pids-limit 256 $net_args \
-                -v "${PWD}:/workspace" -w /workspace \
-                docker.io/library/php:cli bash
+            image_args=(docker.io/library/php:cli bash)
             ;;
         python)
-            $rt run -it --rm --pids-limit 256 $net_args \
-                -v "${PWD}:/workspace" -w /workspace \
-                docker.io/library/python:3 bash
+            image_args=(docker.io/library/python:3 bash)
             ;;
         ruby)
-            $rt run -it --rm --pids-limit 256 $net_args \
-                -v "${PWD}:/workspace" -w /workspace \
-                docker.io/library/ruby:latest bash
+            image_args=(docker.io/library/ruby:latest bash)
             ;;
         rust)
-            $rt run -it --rm --pids-limit 256 $net_args \
-                -v "${PWD}:/workspace" -w /workspace \
-                docker.io/library/rust:latest bash
+            image_args=(docker.io/library/rust:latest bash)
             ;;
         trivy|semgrep)
-            $rt run -it --rm --pids-limit 256 $net_args \
-                -v "${PWD}:/workspace" -w /workspace \
-                docker.io/aquasec/trivy:latest fs /workspace
+            image_args=(docker.io/aquasec/trivy:latest fs /workspace)
             ;;
         ubuntu)
-            $rt run -it --rm --pids-limit 256 $net_args \
-                -v "${PWD}:/workspace" -w /workspace \
-                docker.io/library/ubuntu:latest bash
+            image_args=(docker.io/library/ubuntu:latest bash)
             ;;
         zig)
-            $rt run -it --rm --pids-limit 256 $net_args \
-                -v "${PWD}:/workspace" -w /workspace \
-                --entrypoint /bin/sh \
-                docker.io/euantorano/zig:latest
+            image_args=(--entrypoint /bin/sh docker.io/euantorano/zig:latest)
             ;;
         *)
             echo "Unknown runtime: $name" >&2
@@ -175,6 +159,10 @@ launch() {
             exit 1
             ;;
     esac
+
+    $rt run -it --rm --pids-limit 256 $net_args \
+        -v "$vol_mount" -w /workspace \
+        "${image_args[@]}"
 }
 
 show_header() {
@@ -184,6 +172,9 @@ show_header() {
     remote_version=$(get_remote_version)
     echo "Airlock v$VERSION"
     printf 'Runtime: %s\n' "$rt"
+    if is_selinux_enabled; then
+        echo "SELinux: enabled (:z flag active)"
+    fi
     echo "Project: $PROJECT_URL"
     if [ "$remote_version" != "unavailable" ] && [ -n "$remote_version" ] && [ "$remote_version" != "$VERSION" ]; then
         printf 'Latest:  %s (update available: %s)\n' "$remote_version" "$PROJECT_URL"
@@ -325,10 +316,29 @@ menu() {
     done
 }
 
+show_help() {
+    echo "Usage: airlock [options] [runtime]"
+    echo
+    echo "Options:"
+    echo "  -h, --help     Show this help message"
+    echo "  -v, --version  Show local and remote versions"
+    echo
+    echo "Available runtimes:"
+    echo "  Languages: bun, c, cpp, deno, gcc, go, node, php, python, ruby, rust, zig"
+    echo "  Distros:   alpine, arch, debian, fedora, nix, ubuntu"
+    echo "  AI Agents: aider, opencode"
+    echo "  Security:  kali, trivy"
+    echo
+    echo "Environment variables:"
+    echo "  AIRLOCK_SELINUX=1|0   Force enable or disable SELinux :z volume relabeling"
+}
+
 ensure_path
 
 if [ "${1:-}" = "--version" ] || [ "${1:-}" = "-v" ]; then
     show_version
+elif [ "${1:-}" = "--help" ] || [ "${1:-}" = "-h" ]; then
+    show_help
 elif [ -n "${1:-}" ]; then
     case "$1" in
         aider|alpine|arch|archlinux|bun|c|cpp|gcc|debian|deno|fedora|go|kali|kalilinux|nix|node|opencode|php|python|ruby|rust|semgrep|trivy|ubuntu|zig)
@@ -336,7 +346,7 @@ elif [ -n "${1:-}" ]; then
             ;;
         *)
             echo "Unknown option: $1" >&2
-            echo "Usage: airlock [--version|-v] [runtime]" >&2
+            echo "Usage: airlock [-h|--help] [-v|--version] [runtime]" >&2
             exit 1
             ;;
     esac

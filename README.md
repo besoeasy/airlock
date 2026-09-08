@@ -33,6 +33,7 @@ sudo curl -fsSL https://raw.githubusercontent.com/besoeasy/airlock/main/airlock 
 airlock            # interactive category menu with repository and version
 airlock [runtime]  # directly launch a specific runtime (e.g. airlock python)
 airlock --version  # show local and remote versions
+airlock --help     # show help and available runtimes
 ```
 
 ## Features
@@ -42,6 +43,7 @@ airlock --version  # show local and remote versions
 - No data leaks to host
 - Fork bomb protection (`--pids-limit 256`)
 - Auto-detects Docker or Podman (Podman recommended)
+- SELinux support — automatic `:z` relabeling for Fedora, RHEL, and CentOS
 - 20 runtimes organized into 4 categories:
   - **Programming Languages:** Bun, C/C++ (GCC), Deno, Go, Node.js, PHP, Python, Ruby, Rust, Zig
   - **Linux Distributions:** Alpine, Arch Linux, Debian, Fedora, Nix, Ubuntu
@@ -50,6 +52,26 @@ airlock --version  # show local and remote versions
 
 > [!TIP]
 > Airlock recommends and works best with **[Podman](https://podman.io/)** — rootless and daemonless containers provide an extra layer of security when running untrusted code. Docker is also supported.
+
+## Supported Host Operating Systems
+
+Airlock runs on any operating system equipped with **Podman** or **Docker**:
+
+| Host OS | Recommended Engine | Security System | Support Status |
+|---|---|---|:---:|
+| **Fedora** | Podman | SELinux (Enforcing, automatic `:z` relabeling) | Verified |
+| **Red Hat Enterprise Linux (RHEL)** | Podman | SELinux (Enforcing, automatic `:z` relabeling) | Verified |
+| **CentOS Stream / Rocky / AlmaLinux** | Podman | SELinux (Enforcing, automatic `:z` relabeling) | Verified |
+| **Ubuntu** | Podman / Docker | AppArmor | Verified |
+| **Debian** | Podman / Docker | AppArmor | Verified |
+| **Arch Linux / Manjaro** | Podman / Docker | Standard | Verified |
+| **openSUSE** (Leap / Tumbleweed) | Podman / Docker | AppArmor / SELinux | Verified |
+| **Alpine Linux** | Podman / Docker | Standard | Verified |
+| **macOS** | Podman Desktop / Docker Desktop / OrbStack | Hypervisor VM Isolation | Verified |
+| **Windows (via WSL2)** | Podman / Docker Desktop | WSL2 Linux Subsystem | Verified |
+
+> [!NOTE]
+> **SELinux out of the box:** On SELinux-enforcing hosts like **Fedora** and **RHEL**, Airlock automatically mounts host directories with the `:z` flag so containers have proper access without `Permission denied` errors. You can also manually control this behavior via `AIRLOCK_SELINUX=1` (force enable) or `AIRLOCK_SELINUX=0` (force disable).
 
 ## Use cases
 
