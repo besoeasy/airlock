@@ -141,41 +141,44 @@ load_airlock_config() {
     fi
 }
 
+is_valid_port() {
+    [[ "$1" =~ ^[0-9]{1,5}$ ]] && [ "$1" -ge 1 ] && [ "$1" -le 65535 ]
+}
+
+# Populates the NET_ARGS array (declared by the caller, launch()).
+# Never build these as an interpolated string: unquoted expansion of a
+# plain string lets a space-containing value smuggle extra flags (e.g.
+# network=host --privileged) into the container runtime invocation.
 get_network_args() {
+    NET_ARGS=()
+
     if [ "$CFG_FOUND" = true ]; then
         if [ -n "$CFG_PORTS" ]; then
-            local args=""
             local p
             for p in $CFG_PORTS; do
-                args="$args -p $p:$p"
+                is_valid_port "$p" || { echo "Invalid .airlock ports entry: '$p' (expected a number 1-65535)" >&2; exit 1; }
+                NET_ARGS+=(-p "$p:$p")
             done
-            echo "$args"
-            return
         elif [ -n "$CFG_NETWORK" ]; then
-            if [ "$CFG_NETWORK" = "host" ]; then
-                echo "--network host"
-            else
-                echo "--network $CFG_NETWORK"
-            fi
-            return
+            [[ "$CFG_NETWORK" =~ ^[A-Za-z0-9_.-]+$ ]] || { echo "Invalid .airlock network entry: '$CFG_NETWORK' (expected a simple name like host, bridge, none)" >&2; exit 1; }
+            NET_ARGS=(--network "$CFG_NETWORK")
         else
-            echo "--network host"
-            return
+            NET_ARGS=(--network host)
         fi
+        return
     fi
 
     local ports
     read -rp "Ports to open (space-separated, e.g. 3000 8080) or Enter for --network host: " ports
 
     if [ -z "$ports" ]; then
-        echo "--network host"
+        NET_ARGS=(--network host)
     else
-        local args=""
         local p
         for p in $ports; do
-            args="$args -p $p:$p"
+            is_valid_port "$p" || { echo "Invalid port: '$p' (expected a number 1-65535)" >&2; exit 1; }
+            NET_ARGS+=(-p "$p:$p")
         done
-        echo "$args"
     fi
 }
 
@@ -183,8 +186,8 @@ launch() {
     local name="$1"
     local rt
     rt=$(detect_runtime)
-    local net_args
-    net_args=$(get_network_args)
+    local -a NET_ARGS
+    get_network_args
 
     local vol_mount="${PWD}:/workspace"
     if is_selinux_enabled; then
@@ -279,7 +282,7 @@ launch() {
         done
     fi
 
-    $rt run -it --rm --pids-limit 256 $net_args \
+    $rt run -it --rm --pids-limit 256 "${NET_ARGS[@]}" \
         "${user_args[@]}" \
         "${env_args[@]}" \
         -v "$vol_mount" -w /workspace \
