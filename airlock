@@ -406,6 +406,18 @@ devbox_list() {
     $rt ps -a --filter "name=^/airlock-" --format 'table {{.Names}}\t{{.Image}}\t{{.Status}}'
 }
 
+# Prints existing devboxes (if any) before an interactive name prompt, so the
+# user can see what's taken/what they can enter or remove.
+devbox_show_existing() {
+    local rt existing
+    rt=$(detect_runtime)
+    existing=$($rt ps -a --filter "name=^/airlock-" --format '{{.Names}}')
+    if [ -n "$existing" ]; then
+        echo "Existing devboxes:"
+        $rt ps -a --filter "name=^/airlock-" --format 'table {{.Names}}\t{{.Image}}\t{{.Status}}'
+    fi
+}
+
 devbox_rm() {
     local name="$1"
     if [ -z "$name" ]; then
@@ -480,15 +492,18 @@ menu_devboxes() {
 
         case "$choice" in
             1|c|create)
+                devbox_show_existing
                 read -rp "Devbox name: " name
                 devbox_create "$name"
                 ;;
             2|e|enter)
+                devbox_show_existing
                 read -rp "Devbox name: " name
                 devbox_enter "$name"
                 ;;
             3|l|list|ls) devbox_list ;;
             4|r|rm|remove)
+                devbox_show_existing
                 read -rp "Devbox name: " name
                 devbox_rm "$name"
                 ;;
