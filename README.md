@@ -35,7 +35,7 @@ airlock            # launches .airlock if present, or opens interactive menu
 airlock [runtime]  # directly launch a specific runtime (e.g. airlock python)
 airlock init       # create a starter .airlock (auto-detects runtime)
 airlock devbox     # create/list/enter/remove persistent development boxes
-airlock --version  # show local and remote versions
+airlock --version  # show version
 airlock --help     # show help and available runtimes
 ```
 

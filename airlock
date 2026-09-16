@@ -4,7 +4,6 @@ set -e
 SELF="$(readlink -f "$0" 2>/dev/null || echo "$0")"
 VERSION="0.0.1"
 PROJECT_URL="https://github.com/besoeasy/airlock"
-REMOTE_VERSION_URL="https://raw.githubusercontent.com/besoeasy/airlock/main/.ver"
 
 # Canonical runtimes + accepted aliases (single source for help, init, completions).
 RUNTIMES_ALL="aider alpine arch archlinux bun c cpp gcc debian deno fedora go kali kalilinux nix node opencode php python ruby rust semgrep trivy ubuntu zig"
@@ -17,21 +16,8 @@ is_known_runtime() {
     esac
 }
 
-get_remote_version() {
-    local remote_version
-    if remote_version=$(curl -fsSL --connect-timeout 2 --max-time 3 "$REMOTE_VERSION_URL" 2>/dev/null); then
-        printf '%s' "$remote_version" | tr -d '[:space:]'
-    else
-        echo "unavailable"
-    fi
-}
-
 show_version() {
-    local remote_version
-    remote_version=$(get_remote_version)
-
     echo "Airlock version: $VERSION"
-    echo "Remote version: $remote_version"
     if is_selinux_enabled; then
         echo "SELinux: enabled (:z flag active)"
     fi
@@ -456,8 +442,6 @@ menu_devboxes() {
 show_header() {
     local rt
     rt=$(detect_runtime)
-    local remote_version
-    remote_version=$(get_remote_version)
     echo "Airlock v$VERSION"
     printf 'Runtime: %s\n' "$rt"
     if is_selinux_enabled; then
@@ -476,11 +460,6 @@ show_header() {
         fi
     fi
     echo "Project: $PROJECT_URL"
-    if [ "$remote_version" != "unavailable" ] && [ -n "$remote_version" ] && [ "$remote_version" != "$VERSION" ]; then
-        printf 'Latest:  %s (update available: %s)\n' "$remote_version" "$PROJECT_URL"
-    else
-        printf 'Latest:  %s\n' "$remote_version"
-    fi
 }
 
 menu_languages() {
@@ -789,7 +768,7 @@ show_help() {
     echo
     echo "Options:"
     echo "  -h, --help     Show this help message"
-    echo "  -v, --version  Show local and remote versions"
+    echo "  -v, --version  Show version"
     echo
     echo "Commands:"
     echo "  init [runtime]            Create a starter .airlock file (auto-detects when omitted)"
