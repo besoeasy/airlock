@@ -38,6 +38,33 @@ airlock --version  # show local and remote versions
 airlock --help     # show help and available runtimes
 ```
 
+## Supported Runtimes
+
+20 disposable runtimes in 4 categories. Run with `airlock <runtime>` (e.g. `airlock python`). Your current directory is mounted at `/workspace`.
+
+| Category | Runtime | Container Image | Aliases / Notes |
+|---|---|---|---|
+| Programming Languages | `bun` | `docker.io/oven/bun:latest` | `bash` |
+| Programming Languages | `c` | `docker.io/library/gcc:latest` | `cpp`, `gcc` — `bash` |
+| Programming Languages | `deno` | `docker.io/denoland/deno:latest` | `bash` via `--entrypoint /bin/bash` |
+| Programming Languages | `go` | `docker.io/library/golang:latest` | `bash` |
+| Programming Languages | `node` | `docker.io/library/node:lts` | `bash` |
+| Programming Languages | `php` | `docker.io/library/php:cli` | `bash` |
+| Programming Languages | `python` | `docker.io/library/python:3` | `bash` |
+| Programming Languages | `ruby` | `docker.io/library/ruby:latest` | `bash` |
+| Programming Languages | `rust` | `docker.io/library/rust:latest` | `bash` |
+| Programming Languages | `zig` | `docker.io/euantorano/zig:latest` | `sh` via `--entrypoint /bin/sh` |
+| Linux Distributions | `alpine` | `docker.io/library/alpine:latest` | `sh` |
+| Linux Distributions | `archlinux` | `docker.io/library/archlinux:latest` | `arch` — `bash` |
+| Linux Distributions | `debian` | `docker.io/library/debian:stable` | `bash` — also used for `devbox` |
+| Linux Distributions | `fedora` | `docker.io/library/fedora:latest` | `bash` |
+| Linux Distributions | `nix` | `docker.io/nixos/nix:latest` | `sh` |
+| Linux Distributions | `ubuntu` | `docker.io/library/ubuntu:latest` | `bash` |
+| AI Coding Agents | `aider` | `docker.io/paulgauthier/aider` | forwards `OPENAI/ANTHROPIC/GEMINI/OPENROUTER/DEEPSEEK_API_KEY` |
+| AI Coding Agents | `opencode` | `ghcr.io/anomalyco/opencode` | — |
+| Security & Auditing | `kali` | `docker.io/kalilinux/kali-rolling:latest` | `kalilinux` — `bash` |
+| Security & Auditing | `trivy` | `docker.io/aquasec/trivy:latest` | `semgrep` — runs `fs /workspace` |
+
 ## Development Boxes
 
 Persistent Debian containers that outlive your shell, running with host networking. Unlike the disposable runtimes above, a devbox keeps its state — install packages, run services, and return to the same environment later. Boxes are named `airlock-<name>`.
@@ -45,6 +72,8 @@ Persistent Debian containers that outlive your shell, running with host networki
 ```bash
 airlock devbox create mybox   # create a persistent Debian box (host network)
 airlock devbox enter mybox    # enter a box, creating it on first use
+airlock devbox mybox          # shortcut for 'enter mybox'
+airlock devbox                # shortcut for 'list'
 airlock devbox list           # list all devboxes
 airlock devbox rm mybox       # remove a devbox and its state
 ```
@@ -102,11 +131,7 @@ Explore pre-configured `.airlock` templates in the [**example/**](./example) dir
 - **Engine auto-detection** — automatically detects Podman first and uses it whenever available; Docker is a fallback only
 - **SELinux out of the box** — automatic `:z` volume relabeling for Fedora, RHEL, and CentOS
 - **AI agent ready** — automatically forwards LLM API keys (`OPENAI_API_KEY`, `ANTHROPIC_API_KEY`, `GEMINI_API_KEY`, `OPENROUTER_API_KEY`, `DEEPSEEK_API_KEY`) to Aider
-- **20 runtimes organized into 4 categories:**
-  - **Programming Languages:** Bun, C/C++ (GCC), Deno, Go, Node.js, PHP, Python, Ruby, Rust, Zig
-  - **Linux Distributions:** Alpine, Arch Linux, Debian, Fedora, Nix, Ubuntu
-  - **AI Coding Agents:** Aider, OpenCode
-  - **Security & Auditing:** Kali Linux, Trivy (Security Scanner)
+- **20 runtimes organized into 4 categories** — see [Supported Runtimes](#supported-runtimes) for the full image table
 
 > [!TIP]
 > Airlock is built **Podman-first**. [**Podman**](https://podman.io/) is rootless and daemonless, so containers run with your user permissions — an extra layer of safety when running untrusted or cloned-repo code. Airlock always prefers Podman when it's installed. Docker is supported as a fallback, but we recommend installing Podman:

@@ -369,23 +369,41 @@ devbox_rm() {
 }
 
 devbox_usage() {
-    echo "Usage: airlock devbox <command> [name]" >&2
+    echo "Usage: airlock devbox [<command>] [name]" >&2
     echo "Commands:" >&2
     echo "  create <name>   Create a persistent Debian devbox (host network)" >&2
     echo "  enter <name>    Enter a devbox, creating it if it does not exist" >&2
     echo "  list            List all devboxes" >&2
     echo "  rm <name>       Remove a devbox" >&2
+    echo "Shortcuts:" >&2
+    echo "  airlock devbox            Same as 'airlock devbox list'" >&2
+    echo "  airlock devbox <name>     Same as 'airlock devbox enter <name>'" >&2
 }
 
 devbox_cmd() {
     local sub="${1:-}"
+    local name="${2:-}"
     case "$sub" in
-        create|c) devbox_create "${2:-}" ;;
-        enter|in|exec) devbox_enter "${2:-}" ;;
-        list|ls) devbox_list ;;
-        rm|remove|delete) devbox_rm "${2:-}" ;;
-        help|h) devbox_usage ;;
-        *) devbox_usage; exit 1 ;;
+        "") devbox_list ;;
+        create|c) devbox_create "$name" ;;
+        enter|in|exec) devbox_enter "$name" ;;
+        list|ls)
+            if [ -n "$name" ]; then
+                echo "Error: 'airlock devbox list' takes no name (did you mean 'airlock devbox enter $name'?)" >&2
+                exit 1
+            fi
+            devbox_list ;;
+        rm|remove|delete) devbox_rm "$name" ;;
+        help|h|-h|--help) devbox_usage ;;
+        -*)
+            echo "Unknown devbox option: $sub" >&2
+            devbox_usage; exit 1 ;;
+        *)
+            if [ -n "$name" ]; then
+                echo "Error: too many arguments (did you mean 'airlock devbox enter $sub'?)" >&2
+                devbox_usage; exit 1
+            fi
+            devbox_enter "$sub" ;;
     esac
 }
 
@@ -605,8 +623,9 @@ show_help() {
     echo "Development boxes:"
     echo "  airlock devbox create <name>  Create a persistent Debian devbox (host network, named airlock-<name>)"
     echo "  airlock devbox enter <name>   Enter a devbox, creating it if it does not exist"
-    echo "  airlock devbox list           List all devboxes"
+    echo "  airlock devbox list           List all devboxes (default when no args given)"
     echo "  airlock devbox rm <name>      Remove a devbox"
+    echo "  airlock devbox <name>         Shortcut for 'airlock devbox enter <name>'"
     echo
     echo "Configuration file (.airlock):"
     echo "  When a .airlock file is present in the current directory, Airlock"
