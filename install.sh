@@ -171,10 +171,94 @@ if [ "$TARGET_DIR" = "$HOME/.local/bin" ] && [[ ":$PATH:" != *":$HOME/.local/bin
     fi
 fi
 
-# 6. Check for container engine
+# 6. Ensure Podman is installed (the only supported engine).
+# Prints every command before running it; uses sudo when not root.
+# Never fatal: exotic systems fall through with manual instructions
+# and the Airlock install still completes.
+ensure_podman() {
+    command -v podman >/dev/null 2>&1 && return 0
+
+    echo
+    echo "Podman not found — installing it automatically (required by Airlock)..."
+
+    # Atomic/immutable systems manage packages differently; don't guess.
+    if command -v rpm-ostree >/dev/null 2>&1; then
+        echo "This looks like an rpm-ostree system (Silverblue/Kinoite/Universal Blue)." >&2
+        echo "Podman is usually preinstalled; otherwise run: rpm-ostree install podman (then reboot)." >&2
+        return 1
+    fi
+
+    local sudo_cmd=()
+    if [ "$(id -u)" -ne 0 ]; then
+        if ! command -v sudo >/dev/null 2>&1; then
+            echo "Need root or sudo to install Podman; then re-run this script." >&2
+            return 1
+        fi
+        sudo_cmd=(sudo)
+    fi
+
+    if [ "$(uname -s)" = "Darwin" ]; then
+        if ! command -v brew >/dev/null 2>&1; then
+            echo "macOS needs Homebrew first: https://brew.sh — then: brew install podman" >&2
+            return 1
+        fi
+        if [ "$(id -u)" -eq 0 ]; then
+            echo "Homebrew refuses to run as root; install Podman manually: brew install podman" >&2
+            return 1
+        fi
+        echo "+ brew install podman"
+        brew install podman || return 1
+        echo "Next: podman machine init && podman machine start"
+    else
+        local os_id="" os_like=""
+        if [ -f /etc/os-release ]; then
+            os_id="$(grep -E '^ID=' /etc/os-release 2>/dev/null | cut -d= -f2 | tr -d '"' | tr '[:upper:]' '[:lower:]')"
+            os_like="$(grep -E '^ID_LIKE=' /etc/os-release 2>/dev/null | cut -d= -f2 | tr -d '"' | tr '[:upper:]' '[:lower:]')"
+        fi
+        case " $os_id $os_like " in
+            *" debian "*|*" ubuntu "*|*" raspbian "*|*" linuxmint "*|*" pop "*)
+                echo "+ ${sudo_cmd[*]} apt-get update && ${sudo_cmd[*]} apt-get install -y podman"
+                "${sudo_cmd[@]}" apt-get update && "${sudo_cmd[@]}" apt-get install -y podman || return 1
+                ;;
+            *" fedora "*|*" rhel "*|*" centos "*|*" rocky "*|*" alma "*|*" almalinux "*)
+                if command -v dnf >/dev/null 2>&1; then
+                    echo "+ ${sudo_cmd[*]} dnf install -y podman"
+                    "${sudo_cmd[@]}" dnf install -y podman || return 1
+                else
+                    echo "+ ${sudo_cmd[*]} yum install -y podman"
+                    "${sudo_cmd[@]}" yum install -y podman || return 1
+                fi
+                ;;
+            *" arch "*|*" manjaro "*|*" endeavouros "*|*" cachyos "*)
+                echo "+ ${sudo_cmd[*]} pacman -Sy --noconfirm podman"
+                "${sudo_cmd[@]}" pacman -Sy --noconfirm podman || return 1
+                ;;
+            *" opensuse "*|*" suse "*|*" sled "*|*" sles "*)
+                echo "+ ${sudo_cmd[*]} zypper --non-interactive install podman"
+                "${sudo_cmd[@]}" zypper --non-interactive install podman || return 1
+                ;;
+            *" alpine "*)
+                echo "+ ${sudo_cmd[*]} apk add podman"
+                "${sudo_cmd[@]}" apk add podman || return 1
+                ;;
+            *)
+                echo "Unsupported distro for automatic install ($os_id). Install Podman manually: https://podman.io/docs/installation" >&2
+                return 1
+                ;;
+        esac
+    fi
+
+    if command -v podman >/dev/null 2>&1; then
+        echo "Podman installed successfully."
+        return 0
+    fi
+    echo "Podman install seemed to succeed but 'podman' is still not on PATH." >&2
+    return 1
+}
+
 CONTAINER_MSG=""
-if ! command -v podman >/dev/null 2>&1 && ! command -v docker >/dev/null 2>&1; then
-    CONTAINER_MSG="Note: Podman or Docker is required to run containers. Podman is recommended (https://podman.io)."
+if ! ensure_podman; then
+    CONTAINER_MSG="Note: Podman is required to run containers but could not be installed automatically. Install it manually (https://podman.io/docs/installation), then use Airlock normally."
 fi
 
 # 7. Print completion message

@@ -111,13 +111,15 @@ is_selinux_enabled() {
     fi
 }
 
+# Podman is the only supported engine. It is rootless, so containers
+# already run as your user and no UID/GID mapping is needed.
 detect_runtime() {
     if command -v podman >/dev/null 2>&1; then
         echo "podman"
-    elif command -v docker >/dev/null 2>&1; then
-        echo "docker"
     else
-        echo "Error: container engine required. Install Podman (recommended) or Docker." >&2
+        echo "Error: Podman is required but not installed." >&2
+        echo "Install it with your package manager (e.g. sudo apt install podman)" >&2
+        echo "or re-run install.sh, which installs it automatically." >&2
         exit 1
     fi
 }
@@ -255,13 +257,13 @@ launch() {
         vol_mount="${vol_mount}:z"
     fi
 
+    # Rootless Podman runs as your user, so no UID/GID mapping is needed.
+    # AIRLOCK_USER remains as an explicit override.
     local -a user_args=()
     if [ -n "${AIRLOCK_USER:-}" ]; then
         if [ "$AIRLOCK_USER" != "0" ] && [ "$AIRLOCK_USER" != "root" ]; then
             user_args=(--user "$AIRLOCK_USER" -e HOME=/tmp)
         fi
-    elif [ "$rt" = "docker" ] && [ "$(id -u)" -ne 0 ]; then
-        user_args=(--user "$(id -u):$(id -g)" -e HOME=/tmp)
     fi
 
     local -a image_args
@@ -539,8 +541,6 @@ show_header() {
     fi
     if [ -n "${AIRLOCK_USER:-}" ]; then
         echo "User:    $AIRLOCK_USER"
-    elif [ "$rt" = "docker" ] && [ "$(id -u)" -ne 0 ]; then
-        printf 'User:    %s:%s (host mapping active)\n' "$(id -u)" "$(id -g)"
     fi
     if [ "$CFG_FOUND" = true ]; then
         if [ -n "$CFG_RUNTIME" ]; then
@@ -897,7 +897,7 @@ show_help() {
     echo
     echo "Environment variables:"
     echo "  AIRLOCK_SELINUX=1|0      Force enable or disable SELinux :z volume relabeling"
-    echo "  AIRLOCK_USER=<uid:gid>   Override container user (defaults to host user for Docker)"
+    echo "  AIRLOCK_USER=<uid:gid>   Override container user (default: container default)"
 }
 
 ensure_path
