@@ -5,10 +5,71 @@
 
 # Airlock
 
-**Instant, disposable development environments and sandboxes.**  
+**Instant, disposable development environments and sandboxes.**
 *Run, build, and test code without cluttering or risking your host machine.*
 
+[![Release](https://img.shields.io/github/v/release/besoeasy/airlock)](https://github.com/besoeasy/airlock/releases)
+[![License](https://img.shields.io/badge/license-MIT-green)](#license)
+[![Stars](https://img.shields.io/github/stars/besoeasy/airlock)](https://github.com/besoeasy/airlock/stargazers)
+[![Last commit](https://img.shields.io/github/last-commit/besoeasy/airlock)](https://github.com/besoeasy/airlock/commits/main)
+
 </div>
+
+## Table of Contents
+
+- [Quickstart](#quickstart)
+- [Features](#features)
+- [Install & Update](#install--update)
+- [Usage](#usage)
+- [Supported Runtimes](#supported-runtimes)
+- [Development Boxes](#development-boxes)
+- [Configuration (`.airlock`)](#configuration-airlock)
+- [Supported Host Operating Systems](#supported-host-operating-systems)
+- [Environment Variables](#environment-variables)
+- [Airlock vs Toolbox](#airlock-vs-toolbox)
+- [Use cases](#use-cases)
+- [Contributing](#contributing)
+- [License](#license)
+
+## Quickstart
+
+```bash
+curl -fsSL https://raw.githubusercontent.com/besoeasy/airlock/main/install.sh | bash
+
+cd my-project
+airlock python      # disposable Python sandbox, your project mounted at /workspace
+airlock enter mybox # persistent box (asks which OS on first use)
+airlock list        # list all persistent boxes
+```
+
+Exit a disposable runtime and it's gone — no SDKs, compilers, or toolchains left on your host.
+
+## Features
+
+- **Disposable containers** — exit and everything inside the container is gone
+- **Persistent devboxes** — `airlock enter / list / delete` keeps long-lived environments across sessions
+- **Live workspace mounting** — mounts your current directory at `/workspace` with instant file sync
+- **Zero-prompt launch** — drop a `.airlock` file in any project to bypass menus and prompts
+- **Automatic Docker user mapping** — maps host UID/GID (`--user $(id -u):$(id -g)`) to eliminate `root:root` file ownership issues
+- **Fork bomb protection** — enforced process limit (`--pids-limit 256`)
+- **Engine auto-detection** — automatically detects Podman first and uses it whenever available; Docker is a fallback only
+- **SELinux out of the box** — automatic `:z` volume relabeling for Fedora, RHEL, and CentOS
+- **AI agent ready** — automatically forwards LLM API keys (`OPENAI_API_KEY`, `ANTHROPIC_API_KEY`, `GEMINI_API_KEY`, `OPENROUTER_API_KEY`, `DEEPSEEK_API_KEY`) to Aider
+- **20 runtimes organized into 4 categories** — see [Supported Runtimes](#supported-runtimes) for the full image table
+
+> [!TIP]
+> Airlock is built **Podman-first**. [**Podman**](https://podman.io/) is rootless and daemonless, so containers run with your user permissions — an extra layer of safety when running untrusted or cloned-repo code. Airlock always prefers Podman when it's installed. Docker is supported as a fallback, but we recommend installing Podman:
+> ```bash
+> # Debian/Ubuntu
+> sudo apt install podman
+> # Fedora/RHEL
+> sudo dnf install podman
+> # Arch
+> sudo pacman -S podman
+> # macOS
+> brew install podman && podman machine init && podman machine start
+> ```
+> Note: on Docker, Airlock maps your host UID/GID into the container so `/workspace` files stay yours; with Podman this is unnecessary because it is already rootless.
 
 ## Install & Update
 
@@ -136,33 +197,6 @@ Explore pre-configured `.airlock` templates in the [**example/**](./example) dir
 - [**Minimal Single-Token**](./example/minimal/.airlock) — 1-line format (`python`)
 - [**Security Audit**](./example/security-audit/.airlock) — Filesystem & secret scanning with Trivy
 
-## Features
-
-- **Disposable containers** — exit and everything inside the container is gone
-- **Persistent devboxes** — `airlock enter / list / delete` keeps long-lived environments across sessions
-- **Live workspace mounting** — mounts your current directory at `/workspace` with instant file sync
-- **Zero-prompt launch** — drop a `.airlock` file in any project to bypass menus and prompts
-- **Automatic Docker user mapping** — maps host UID/GID (`--user $(id -u):$(id -g)`) to eliminate `root:root` file ownership issues
-- **Fork bomb protection** — enforced process limit (`--pids-limit 256`)
-- **Engine auto-detection** — automatically detects Podman first and uses it whenever available; Docker is a fallback only
-- **SELinux out of the box** — automatic `:z` volume relabeling for Fedora, RHEL, and CentOS
-- **AI agent ready** — automatically forwards LLM API keys (`OPENAI_API_KEY`, `ANTHROPIC_API_KEY`, `GEMINI_API_KEY`, `OPENROUTER_API_KEY`, `DEEPSEEK_API_KEY`) to Aider
-- **20 runtimes organized into 4 categories** — see [Supported Runtimes](#supported-runtimes) for the full image table
-
-> [!TIP]
-> Airlock is built **Podman-first**. [**Podman**](https://podman.io/) is rootless and daemonless, so containers run with your user permissions — an extra layer of safety when running untrusted or cloned-repo code. Airlock always prefers Podman when it's installed. Docker is supported as a fallback, but we recommend installing Podman:
-> ```bash
-> # Debian/Ubuntu
-> sudo apt install podman
-> # Fedora/RHEL
-> sudo dnf install podman
-> # Arch
-> sudo pacman -S podman
-> # macOS
-> brew install podman && podman machine init && podman machine start
-> ```
-> Note: on Docker, Airlock maps your host UID/GID into the container so `/workspace` files stay yours; with Podman this is unnecessary because it is already rootless.
-
 ## Supported Host Operating Systems
 
 Airlock runs on any operating system equipped with a container engine. **Podman is preferred and recommended; Docker works as a fallback when Podman is not installed:**
@@ -218,6 +252,16 @@ Airlock runs on any operating system equipped with a container engine. **Podman 
 - **Cross-distro testing:** Test scripts and binary packaging across Alpine, Arch, Debian, Fedora, and Ubuntu
 - **Security audits:** Scan repositories for CVEs and secret leaks with Trivy, or inspect binaries in Kali Linux
 - **Clean host system:** Keep your personal machine clean of global package managers, dev tools, and toolchains
+
+## Contributing
+
+Contributions are welcome! Fork the repo, create a branch, and open a pull request. Before submitting, check your changes with:
+
+```bash
+bash -n airlock
+```
+
+Please keep the script dependency-free (Bash + a container engine only) and update this README when adding runtimes or commands.
 
 ## License
 
