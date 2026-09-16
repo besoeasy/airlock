@@ -88,8 +88,6 @@ else
     fi
 fi
 
-chmod +x "$TMP_FILE"
-
 # 3b. Stamp the installed copy with the resolved ref so 'airlock --version'
 # knows what it was installed from (the repo itself keeps VERSION="dev").
 # Local-copy installs skip this and stay "dev". No sed -i (not portable to
@@ -111,6 +109,10 @@ if [ -n "${SOURCE_REF:-}" ]; then
             ;;
     esac
 fi
+
+# chmod AFTER stamping: the stamp step rewrites the file via redirect,
+# which would clobber an earlier +x.
+chmod +x "$TMP_FILE"
 
 # 4. Install binary
 if [ "$USE_SUDO" = true ]; then
