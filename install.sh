@@ -6,7 +6,7 @@ RELEASE_API_URL="https://api.github.com/repos/${REPO}/releases/latest"
 
 echo "==> Airlock Installer"
 
-# Resolve latest release tag (e.g. v2026.09.16) via GitHub Releases API.
+# Resolve latest release tag (e.g. 2026.09.16) via GitHub Releases API.
 # Falls back to 'main' when offline, rate-limited, or no releases exist yet.
 # NOTE: only called in the download branch below — local installs skip the API.
 resolve_source_ref() {
