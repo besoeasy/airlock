@@ -186,17 +186,6 @@ python
 | `env` | Environment variable (repeatable) | `env=DEBUG=express:*` |
 | `selinux` | SELinux `:z` flag override | `selinux=1` or `selinux=0` |
 
-### Ready-to-use Examples
-
-Explore pre-configured `.airlock` templates in the [**example/**](./example) directory:
-
-- [**Node.js Web API**](./example/node-api/.airlock) — Port forwarding (`3000`, `8080`) & environment variables
-- [**Python FastAPI**](./example/python-fastapi/.airlock) — Port `8000` & unbuffered stdout
-- [**Rust CLI**](./example/rust-cli/.airlock) — Host networking & backtrace configuration
-- [**Go Microservice**](./example/go-service/.airlock) — Port `8080` & `CGO_ENABLED=0`
-- [**Minimal Single-Token**](./example/minimal/.airlock) — 1-line format (`python`)
-- [**Security Audit**](./example/security-audit/.airlock) — Filesystem & secret scanning with Trivy
-
 ## Supported Host Operating Systems
 
 Airlock runs on any operating system equipped with a container engine. **Podman is preferred and recommended; Docker works as a fallback when Podman is not installed:**

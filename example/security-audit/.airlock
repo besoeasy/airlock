@@ -1,3 +1,0 @@
-# Security and Vulnerability Scanning with Trivy
-runtime=trivy
-network=host
