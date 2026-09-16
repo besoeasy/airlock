@@ -194,6 +194,23 @@ Airlock runs on any operating system equipped with a container engine. **Podman 
 | `AIRLOCK_USER` | Override container user and group (e.g. `1000:1000`, `root`) | Host user for Docker; container default for Podman |
 | `AIRLOCK_SELINUX` | Force enable (`1`) or disable (`0`) SELinux `:z` volume relabeling | Auto-detected |
 
+## Airlock vs Toolbox
+
+[Toolbox](https://containertoolbx.org/) is great for a persistent "pet" container on immutable distros — but it's built around one long-lived container tied to your host OS version. Airlock is the modern disposable-first alternative: instant sandboxes per runtime, with persistence only when you ask for it.
+
+| | Toolbox | Airlock |
+|---|---|---|
+| Model | One persistent pet container | Disposable per-runtime sandboxes + optional persistent devboxes |
+| Startup | `toolbox create` / `enter` with a host-matched image | `airlock python` — 20 runtimes, zero setup |
+| Runtimes | Single OS userland per toolbox | 10 languages, 6 distros, AI agents, security scanners |
+| Per-project config | None (set up tools by hand inside) | `.airlock` file: runtime, ports, env, network — plus `airlock init` generator |
+| Workspace | Shares your entire `$HOME` | Mounts only the current dir at `/workspace`; gone on exit |
+| Cleanup | Manual, state accumulates | Exit = gone (`--rm`); devboxes keep state only when you want it |
+| Engine / hosts | Podman, Linux-focused | Podman-first with Docker fallback; macOS and WSL2 supported |
+| Shell completions | No | Bash, Zsh, Fish via `airlock completion` |
+
+**Rule of thumb:** Toolbox when you want one persistent shell on an immutable host; Airlock when you want instant, reproducible, throwaway environments per project.
+
 ## Use cases
 
 - **Polyglot development:** Test, compile, and run code in 10+ languages without installing SDKs or compilers on your host
