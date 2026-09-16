@@ -83,10 +83,10 @@ curl -fsSL https://raw.githubusercontent.com/besoeasy/airlock/main/install.sh | 
 
 ### System-wide with sudo (Alternative)
 
-Installs directly to `/usr/local/bin` for all users and shells:
+Installs directly to `/usr/local/bin` for all users and shells (running the installer as root also records the release version, so `airlock --version` stays accurate):
 
 ```bash
-sudo curl -fsSL https://raw.githubusercontent.com/besoeasy/airlock/main/airlock -o /usr/local/bin/airlock && sudo chmod +x /usr/local/bin/airlock
+curl -fsSL https://raw.githubusercontent.com/besoeasy/airlock/main/install.sh | sudo bash
 ```
 
 ## Usage

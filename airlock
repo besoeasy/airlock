@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 set -e
 
-VERSION="0.0.2"
+VERSION="dev"
 PROJECT_URL="https://github.com/besoeasy/airlock"
 GITHUB_REPO="besoeasy/airlock"
 RELEASE_API_URL="https://api.github.com/repos/${GITHUB_REPO}/releases/latest"
@@ -68,7 +68,9 @@ show_version() {
 
     echo "Airlock version: $VERSION"
     echo "Latest release: $latest_version"
-    if [ "$latest_version" != "unavailable" ] && version_greater "$latest_version" "$VERSION"; then
+    # Only release-stamped copies (installed via install.sh) get an update
+    # verdict; dev checkouts and manual copies just report what they are.
+    if [[ "$VERSION" =~ ^v?[0-9]+\.[0-9]+\.[0-9]+ ]] && [ "$latest_version" != "unavailable" ] && version_greater "$latest_version" "$VERSION"; then
         echo "Update available: $latest_version (re-run install.sh to update)"
     fi
     if is_selinux_enabled; then

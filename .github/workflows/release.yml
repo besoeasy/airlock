@@ -3,8 +3,8 @@ name: Release
 # Manual date-based release: Actions tab -> Release -> Run workflow.
 # Optionally pass a custom tag (e.g. v2026.09.17). Otherwise today's
 # UTC date is used (vYYYY.MM.DD), auto-suffixed (.1, .2, ...) if taken.
-# The workflow stamps VERSION in the airlock script, pushes to main,
-# then creates the tag + GitHub release (install.sh consumes the tag).
+# No VERSION bookkeeping here: install.sh stamps the resolved tag into
+# the copy it installs, so 'airlock --version' always knows its source.
 
 on:
   workflow_dispatch:
@@ -55,39 +55,18 @@ jobs:
           echo "tag=$TAG" >> "$GITHUB_OUTPUT"
           echo "Resolved tag: $TAG"
 
-      - name: Stamp VERSION and push to main
-        id: stamp
-        env:
-          TAG: ${{ steps.tag.outputs.tag }}
-        run: |
-          set -e
-          VER="${TAG#v}"
-          sed -i -E "s/^VERSION=\"[^\"]*\"/VERSION=\"$VER\"/" airlock
-          bash -n airlock
-          git config user.name "github-actions[bot]"
-          git config user.email "github-actions[bot]@users.noreply.github.com"
-          git add airlock
-          if git diff --cached --quiet; then
-            echo "VERSION already $VER, nothing to commit."
-          else
-            git commit -m "Release $TAG"
-            git push origin HEAD:main
-          fi
-          echo "sha=$(git rev-parse HEAD)" >> "$GITHUB_OUTPUT"
-
       - name: Create GitHub release
-        id: release
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           TAG: ${{ steps.tag.outputs.tag }}
-          SHA: ${{ steps.stamp.outputs.sha }}
         run: |
           set -e
           git fetch origin main --tags
-          PREV="$(git describe --tags --abbrev=0 origin/main 2>/dev/null || true)"
+          SHA="$(git rev-parse origin/main)"
+          PREV="$(git describe --tags --abbrev=0 "$SHA" 2>/dev/null || true)"
           if [ -n "$PREV" ]; then
-            NOTES="$(git log --format='- %h %s' "${PREV}..origin/main")"
+            NOTES="$(git log --format='- %h %s' "${PREV}..${SHA}")"
           else
-            NOTES="$(git log --format='- %h %s' -10 origin/main)"
+            NOTES="$(git log --format='- %h %s' -10 "$SHA")"
           fi
           gh release create "$TAG" --target "$SHA" --title "$TAG" --notes "$NOTES"

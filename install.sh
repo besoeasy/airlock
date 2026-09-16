@@ -64,7 +64,7 @@ fi
 
 # 3. Obtain airlock binary
 TMP_FILE="$(mktemp)"
-trap 'rm -f "$TMP_FILE"' EXIT
+trap 'rm -f "$TMP_FILE" "${TMP_FILE}.stamped"' EXIT
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]:-$0}")" 2>/dev/null && pwd)"
 if [ -f "${SCRIPT_DIR}/airlock" ] && [ "${SCRIPT_DIR}" != "$TARGET_DIR" ]; then
@@ -89,6 +89,28 @@ else
 fi
 
 chmod +x "$TMP_FILE"
+
+# 3b. Stamp the installed copy with the resolved ref so 'airlock --version'
+# knows what it was installed from (the repo itself keeps VERSION="dev").
+# Local-copy installs skip this and stay "dev". No sed -i (not portable to
+# macOS/BSD), and never fatal: a stamp failure must not break an install.
+if [ -n "${SOURCE_REF:-}" ]; then
+    STAMP_VER="${SOURCE_REF#v}"
+    case "$STAMP_VER" in
+        *[!A-Za-z0-9_.-]*)
+            echo "Warning: unusual release ref ($SOURCE_REF); installing unstamped." >&2
+            ;;
+        *)
+            if sed -E "s/^VERSION=\"[^\"]*\"/VERSION=\"$STAMP_VER\"/" "$TMP_FILE" > "${TMP_FILE}.stamped" 2>/dev/null \
+                && grep -qxF "VERSION=\"$STAMP_VER\"" "${TMP_FILE}.stamped" 2>/dev/null; then
+                mv "${TMP_FILE}.stamped" "$TMP_FILE"
+            else
+                echo "Warning: could not stamp version ($SOURCE_REF); installing unstamped." >&2
+                rm -f "${TMP_FILE}.stamped"
+            fi
+            ;;
+    esac
+fi
 
 # 4. Install binary
 if [ "$USE_SUDO" = true ]; then
