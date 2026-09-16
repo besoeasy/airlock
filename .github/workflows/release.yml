@@ -5,6 +5,7 @@ name: Release
 # UTC date is used (YYYY.MM.DD), auto-suffixed (.1, .2, ...) if taken.
 # No VERSION bookkeeping here: install.sh stamps the resolved tag into
 # the copy it installs, so 'airlock --version' always knows its source.
+# Retention: only the newest 100 releases are kept, oldest pruned first.
 
 on:
   workflow_dispatch:
@@ -70,3 +71,25 @@ jobs:
             NOTES="$(git log --format='- %h %s' -10 "$SHA")"
           fi
           gh release create "$TAG" --target "$SHA" --title "$TAG" --notes "$NOTES"
+
+      - name: Prune old releases (keep newest $KEEP)
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          KEEP: 100
+        run: |
+          set -e
+          [[ "$KEEP" =~ ^[0-9]+$ ]] || { echo "Invalid KEEP: $KEEP" >&2; exit 1; }
+          mapfile -t OLD < <(gh release list --limit 1000 --json tagName,createdAt,isDraft \
+            --jq --argjson keep "$KEEP" '
+              map(select(.isDraft | not))
+              | sort_by(.createdAt)
+              | if length > $keep then .[0:(length - $keep)][].tagName else empty end') || true
+          if [ "${#OLD[@]}" -eq 0 ]; then
+            echo "Release count within retention ($KEEP); nothing to prune."
+            exit 0
+          fi
+          echo "Pruning ${#OLD[@]} release(s) older than newest $KEEP:"
+          printf '  %s\n' "${OLD[@]}"
+          for t in "${OLD[@]}"; do
+            gh release delete "$t" --yes --cleanup-tag
+          done
