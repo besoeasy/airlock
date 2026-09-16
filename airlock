@@ -331,7 +331,7 @@ launch() {
             ;;
         *)
             echo "Unknown runtime: $name" >&2
-            echo "Runtimes: aider, alpine, archlinux, bun, c, debian, deno, fedora, gcc, go, kali, nix, node, opencode, php, python, ruby, rust, trivy, ubuntu, zig" >&2
+            echo "Runtimes: $RUNTIMES_ALL" >&2
             exit 1
             ;;
     esac
@@ -532,7 +532,11 @@ menu_devboxes() {
 show_header() {
     local rt
     rt=$(detect_runtime)
-    echo "Airlock v$VERSION"
+    if [[ "$VERSION" =~ ^v?[0-9] ]]; then
+        echo "Airlock v${VERSION#v}"
+    else
+        echo "Airlock ($VERSION)"
+    fi
     printf 'Runtime: %s\n' "$rt"
     if is_selinux_enabled; then
         echo "SELinux: enabled (:z flag active)"

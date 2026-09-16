@@ -246,7 +246,7 @@ Airlock runs on any operating system equipped with a container engine. **Podman 
 
 ## Use cases
 
-- **Polyglot development:** Test, compile, and run code in 10+ languages without installing SDKs or compilers on your host
+- **Polyglot development:** Test, compile, and run code in 10 languages without installing SDKs or compilers on your host
 - **Run AI coding agents:** Run Aider or OpenCode inside a container without giving LLMs unrestricted host execution
 - **Isolate untrusted dependencies:** Run `npm install`, `bundle install`, or `composer install` without trusting unknown scripts
 - **Cross-distro testing:** Test scripts and binary packaging across Alpine, Arch, Debian, Fedora, and Ubuntu
