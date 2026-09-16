@@ -498,28 +498,22 @@ menu_devboxes() {
     while true; do
         echo
         echo "=== Development Boxes ==="
-        echo "1) Create a devbox"
-        echo "2) Enter a devbox"
-        echo "3) List devboxes"
-        echo "4) Delete a devbox"
+        echo "1) Enter a devbox (creates it if new)"
+        echo "2) List devboxes"
+        echo "3) Delete a devbox"
         echo "b) Back to main menu"
         echo "q) Quit"
         echo
         read -rp "Select option (or 'b' to go back, 'q' to quit): " choice
 
         case "$choice" in
-            1|c|create)
-                devbox_show_existing
-                read -rp "Devbox name: " name
-                devbox_create "$name" "$(devbox_prompt_distro)"
-                ;;
-            2|e|enter)
+            1|e|enter)
                 devbox_show_existing
                 read -rp "Devbox name: " name
                 devbox_enter "$name"
                 ;;
-            3|l|list|ls) devbox_list ;;
-            4|d|delete|rm|remove)
+            2|l|list|ls) devbox_list ;;
+            3|d|delete|rm|remove)
                 devbox_show_existing
                 read -rp "Devbox name: " name
                 devbox_delete "$name"
