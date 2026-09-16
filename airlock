@@ -385,11 +385,18 @@ devbox_shell() {
 devbox_create() {
     local name="$1" distro="${2:-debian}" image shell
     if [ -z "$name" ]; then
-        echo "Error: devbox name required (e.g. airlock devbox create mysandbox)" >&2
+        echo "Error: box name required (e.g. airlock create mysandbox)" >&2
         exit 1
     fi
+    case "$distro" in
+        alpine|debian|fedora|ubuntu) ;;
+        *)
+            echo "Error: invalid distro: '$distro' (expected alpine, debian, fedora, or ubuntu)" >&2
+            exit 1
+            ;;
+    esac
     if ! devbox_validate_name "$name"; then
-        echo "Error: invalid devbox name: '$name'" >&2
+        echo "Error: invalid box name: '$name'" >&2
         echo "Names may contain letters, digits, '_', '.', '-' (no spaces)." >&2
         exit 1
     fi
@@ -409,11 +416,11 @@ devbox_create() {
 devbox_enter() {
     local name="$1"
     if [ -z "$name" ]; then
-        echo "Error: devbox name required (e.g. airlock devbox enter mysandbox)" >&2
+        echo "Error: box name required (e.g. airlock enter mysandbox)" >&2
         exit 1
     fi
     if ! devbox_validate_name "$name"; then
-        echo "Error: invalid devbox name: '$name'" >&2
+        echo "Error: invalid box name: '$name'" >&2
         exit 1
     fi
     rt=$(detect_runtime)
@@ -443,14 +450,14 @@ devbox_show_existing() {
     fi
 }
 
-devbox_rm() {
+devbox_delete() {
     local name="$1"
     if [ -z "$name" ]; then
-        echo "Error: devbox name required (e.g. airlock devbox rm mysandbox)" >&2
+        echo "Error: box name required (e.g. airlock delete mysandbox)" >&2
         exit 1
     fi
     if ! devbox_validate_name "$name"; then
-        echo "Error: invalid devbox name: '$name'" >&2
+        echo "Error: invalid box name: '$name'" >&2
         exit 1
     fi
     rt=$(detect_runtime)
@@ -463,46 +470,6 @@ devbox_rm() {
     echo "Removed devbox '$name' ($B_NAME)"
 }
 
-devbox_usage() {
-    echo "Usage: airlock devbox [<command>] [name]" >&2
-    echo "Commands:" >&2
-    echo "  create <name>   Create a persistent devbox (host network, default distro: Debian)" >&2
-    echo "  enter <name>    Enter a devbox, creating it if it does not exist" >&2
-    echo "  list            List all devboxes" >&2
-    echo "  rm <name>       Remove a devbox" >&2
-    echo "Shortcuts:" >&2
-    echo "  airlock devbox            Same as 'airlock devbox list'" >&2
-    echo "  airlock devbox <name>     Same as 'airlock devbox enter <name>'" >&2
-    echo "Distros (menu create): Debian (default), Alpine, Fedora, Ubuntu" >&2
-}
-
-devbox_cmd() {
-    local sub="${1:-}"
-    local name="${2:-}"
-    case "$sub" in
-        "") devbox_list ;;
-        create|c) devbox_create "$name" ;;
-        enter|in|exec) devbox_enter "$name" ;;
-        list|ls)
-            if [ -n "$name" ]; then
-                echo "Error: 'airlock devbox list' takes no name (did you mean 'airlock devbox enter $name'?)" >&2
-                exit 1
-            fi
-            devbox_list ;;
-        rm|remove|delete) devbox_rm "$name" ;;
-        help|h|-h|--help) devbox_usage ;;
-        -*)
-            echo "Unknown devbox option: $sub" >&2
-            devbox_usage; exit 1 ;;
-        *)
-            if [ -n "$name" ]; then
-                echo "Error: too many arguments (did you mean 'airlock devbox enter $sub'?)" >&2
-                devbox_usage; exit 1
-            fi
-            devbox_enter "$sub" ;;
-    esac
-}
-
 menu_devboxes() {
     while true; do
         echo
@@ -510,7 +477,7 @@ menu_devboxes() {
         echo "1) Create a devbox"
         echo "2) Enter a devbox"
         echo "3) List devboxes"
-        echo "4) Remove a devbox"
+        echo "4) Delete a devbox"
         echo "b) Back to main menu"
         echo "q) Quit"
         echo
@@ -541,10 +508,10 @@ menu_devboxes() {
                 devbox_enter "$name"
                 ;;
             3|l|list|ls) devbox_list ;;
-            4|r|rm|remove)
+            4|d|delete|rm|remove)
                 devbox_show_existing
                 read -rp "Devbox name: " name
-                devbox_rm "$name"
+                devbox_delete "$name"
                 ;;
             b|B|back|BACK) return 0 ;;
             q|Q|exit|"") exit 0 ;;
@@ -699,7 +666,7 @@ menu() {
         echo "2) Linux Distributions    (Alpine, Arch, Debian, Fedora, Nix, Ubuntu)"
         echo "3) AI Coding Agents       (Aider, OpenCode)"
         echo "4) Security & Auditing    (Kali Linux, Trivy)"
-        echo "5) Development Boxes      (Persistent Debian containers)"
+        echo "5) Development Boxes      (Persistent containers)"
         echo "q) Quit"
         echo
         read -rp "Select category (or 'q' to quit): " choice
@@ -811,10 +778,7 @@ _airlock_completions() {
     runtimes="$RUNTIMES_ALL"
     case "\$prev" in
         airlock)
-            COMPREPLY=( \$(compgen -W "\$runtimes devbox db init completion -h --help -v --version" -- "\$cur") )
-            ;;
-        devbox|db)
-            COMPREPLY=( \$(compgen -W "create enter list rm help" -- "\$cur") )
+            COMPREPLY=( \$(compgen -W "\$runtimes create enter list delete init completion -h --help -v --version" -- "\$cur") )
             ;;
         init)
             COMPREPLY=( \$(compgen -W "\$runtimes" -- "\$cur") )
@@ -841,12 +805,11 @@ _airlock() {
         '*: :->args' && return 0
     case \$state in
         cmd)
-            _describe 'command' 'runtimes:run a runtime devbox:manage devboxes db:manage-devbox-alias init:create-.airlock completion:print-completion -h:help --help:help -v:version --version:version' && return 0
+            _describe 'command' 'runtimes:run a runtime create:create-box enter:enter-box list:list-boxes delete:delete-box init:create-.airlock completion:print-completion -h:help --help:help -v:version --version:version' && return 0
             _describe 'runtime' runtimes && return 0
             ;;
         args)
             case \$words[2] in
-                devbox|db) _describe 'devbox command' 'create:create enter:enter list:list rm:remove help:help' && return 0 ;;
                 init) _describe 'runtime' runtimes && return 0 ;;
                 completion) _describe 'shell' 'bash:bash zsh:zsh fish:fish' && return 0 ;;
             esac
@@ -864,12 +827,14 @@ completion_fish() {
 set -l runtimes $RUNTIMES_ALL
 complete -c airlock -f
 complete -c airlock -n __fish_use_subcommand -a "\$runtimes" -d 'runtime'
-complete -c airlock -n __fish_use_subcommand -a devbox -d 'manage devboxes'
+complete -c airlock -n __fish_use_subcommand -a create -d 'create a persistent box'
+complete -c airlock -n __fish_use_subcommand -a enter -d 'enter a persistent box'
+complete -c airlock -n __fish_use_subcommand -a list -d 'list persistent boxes'
+complete -c airlock -n __fish_use_subcommand -a delete -d 'delete a persistent box'
 complete -c airlock -n __fish_use_subcommand -a init -d 'create .airlock'
 complete -c airlock -n __fish_use_subcommand -a completion -d 'print completion'
 complete -c airlock -n __fish_use_subcommand -s h -l help -d 'show help'
 complete -c airlock -n __fish_use_subcommand -s v -l version -d 'show version'
-complete -c airlock -n '__fish_seen_subcommand_from devbox db' -a 'create enter list rm help'
 complete -c airlock -n '__fish_seen_subcommand_from init' -a "\$runtimes"
 complete -c airlock -n '__fish_seen_subcommand_from completion' -a 'bash zsh fish'
 EOF
@@ -895,7 +860,10 @@ show_help() {
     echo "Commands:"
     echo "  init [runtime]            Create a starter .airlock file (auto-detects when omitted)"
     echo "  completion <shell>        Print completion script (bash, zsh, fish)"
-    echo "  devbox [<cmd>] [name]     Manage persistent devboxes (default: list; '<name>' = enter)"
+    echo "  create <name> [distro]    Create a persistent box (distro: debian, alpine, fedora, ubuntu)"
+    echo "  enter <name>              Enter a persistent box, creating it if needed"
+    echo "  list                      List all persistent boxes"
+    echo "  delete <name>             Delete a persistent box"
     echo
     echo "Available runtimes:"
     echo "  Languages: bun, c, cpp, deno, gcc, go, node, php, python, ruby, rust, zig"
@@ -904,12 +872,11 @@ show_help() {
     echo "  Security:  kali, trivy"
     echo
     echo "Development boxes:"
-    echo "  airlock devbox create <name>   Create a persistent devbox (host network, name: airlock-<name>)"
-    echo "                                 Distros (menu create): Debian (default), Alpine, Fedora, Ubuntu"
-    echo "  airlock devbox enter <name>    Enter a devbox, creating it if it does not exist"
-    echo "  airlock devbox list            List all devboxes (default when no args given)"
-    echo "  airlock devbox rm <name>       Remove a devbox"
-    echo "  airlock devbox <name>          Shortcut for 'airlock devbox enter <name>'"
+    echo "  airlock create mybox          Create a persistent box (host network, name: airlock-mybox)"
+    echo "  airlock create mybox alpine   Create a persistent box with a distro (debian, alpine, fedora, ubuntu)"
+    echo "  airlock enter mybox           Enter a box, creating it if it does not exist"
+    echo "  airlock list                  List all boxes"
+    echo "  airlock delete mybox          Delete a box and its state"
     echo
     echo "Configuration file (.airlock):"
     echo "  When a .airlock file is present in the current directory, Airlock"
@@ -941,8 +908,32 @@ elif [ -n "${1:-}" ]; then
         aider|alpine|arch|archlinux|bun|c|cpp|gcc|debian|deno|fedora|go|kali|kalilinux|nix|node|opencode|php|python|ruby|rust|semgrep|trivy|ubuntu|zig)
             launch "$1"
             ;;
-        devbox|db)
-            devbox_cmd "${2:-}" "${3:-}"
+        create)
+            if [ -n "${4:-}" ]; then
+                echo "Error: too many arguments (expected 'airlock create <name> [distro]')" >&2
+                exit 1
+            fi
+            devbox_create "${2:-}" "${3:-debian}"
+            ;;
+        enter)
+            if [ -n "${3:-}" ]; then
+                echo "Error: too many arguments (expected 'airlock enter <name>')" >&2
+                exit 1
+            fi
+            devbox_enter "${2:-}"
+            ;;
+        list)
+            if [ -n "${2:-}" ]; then
+                echo "Error: 'airlock list' takes no arguments (did you mean 'airlock enter $2'?)" >&2
+                exit 1
+            fi
+            devbox_list ;;
+        delete|rm|remove)
+            if [ -n "${3:-}" ]; then
+                echo "Error: too many arguments (expected 'airlock delete <name>')" >&2
+                exit 1
+            fi
+            devbox_delete "${2:-}"
             ;;
         init)
             shift
@@ -953,7 +944,7 @@ elif [ -n "${1:-}" ]; then
             ;;
         *)
             echo "Unknown option: $1" >&2
-            echo "Usage: airlock [-h|--help] [-v|--version] [runtime] [init] [completion <shell>] [devbox <command> [name]]" >&2
+            echo "Usage: airlock [-h|--help] [-v|--version] [runtime] [create <name>] [enter <name>] [list] [delete <name>] [init] [completion <shell>]" >&2
             exit 1
             ;;
     esac

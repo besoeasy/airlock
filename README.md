@@ -34,7 +34,11 @@ sudo curl -fsSL https://raw.githubusercontent.com/besoeasy/airlock/main/airlock 
 airlock            # launches .airlock if present, or opens interactive menu
 airlock [runtime]  # directly launch a specific runtime (e.g. airlock python)
 airlock init       # create a starter .airlock (auto-detects runtime)
-airlock devbox     # create/list/enter/remove persistent development boxes
+airlock create mybox        # create a persistent box (Debian by default)
+airlock create mybox alpine # create a persistent box with a distro
+airlock enter mybox         # enter a persistent box, creating it if needed
+airlock list                # list all persistent boxes
+airlock delete mybox        # delete a persistent box and its state
 airlock --version  # show version + latest release (update notice)
 airlock --help     # show help and available runtimes
 ```
@@ -65,7 +69,7 @@ airlock completion fish > ~/.config/fish/completions/airlock.fish
 | Programming Languages | `zig` | `docker.io/euantorano/zig:latest` | `sh` via `--entrypoint /bin/sh` |
 | Linux Distributions | `alpine` | `docker.io/library/alpine:latest` | `sh` |
 | Linux Distributions | `archlinux` | `docker.io/library/archlinux:latest` | `arch` — `bash` |
-| Linux Distributions | `debian` | `docker.io/library/debian:stable` | `bash` — also used for `devbox` |
+| Linux Distributions | `debian` | `docker.io/library/debian:stable` | `bash` — default box image for `create` |
 | Linux Distributions | `fedora` | `docker.io/library/fedora:latest` | `bash` |
 | Linux Distributions | `nix` | `docker.io/nixos/nix:latest` | `sh` |
 | Linux Distributions | `ubuntu` | `docker.io/library/ubuntu:latest` | `bash` |
@@ -76,15 +80,14 @@ airlock completion fish > ~/.config/fish/completions/airlock.fish
 
 ## Development Boxes
 
-Persistent containers that outlive your shell, running with host networking. Unlike the disposable runtimes above, a devbox keeps its state — install packages, run services, and return to the same environment later. Boxes are named `airlock-<name>` and default to Debian, with Alpine, Fedora, and Ubuntu available when creating via the interactive menu.
+Persistent containers that outlive your shell, running with host networking. Unlike the disposable runtimes above, a devbox keeps its state — install packages, run services, and return to the same environment later. Boxes are named `airlock-<name>` and default to Debian, with Alpine, Fedora, and Ubuntu available via `airlock create <name> <distro>` or the interactive menu.
 
 ```bash
-airlock devbox create mybox   # create a persistent box (default: Debian, host network)
-airlock devbox enter mybox    # enter a box, creating it on first use
-airlock devbox mybox          # shortcut for 'enter mybox'
-airlock devbox                # shortcut for 'list'
-airlock devbox list           # list all devboxes
-airlock devbox rm mybox       # remove a devbox and its state
+airlock create mybox        # create a persistent box (default: Debian, host network)
+airlock create mybox alpine # create a persistent box (alpine, debian, fedora, ubuntu)
+airlock enter mybox         # enter a box, creating it on first use
+airlock list                # list all boxes
+airlock delete mybox        # delete a box and its state
 ```
 
 Boxes are independent: they do **not** mount your current directory and do not map your host user, so you can freely run `apt install` as root inside them.
@@ -140,7 +143,7 @@ Explore pre-configured `.airlock` templates in the [**example/**](./example) dir
 ## Features
 
 - **Disposable containers** — exit and everything inside the container is gone
-- **Persistent devboxes** — `airlock devbox` keeps long-lived Debian environments across sessions
+- **Persistent devboxes** — `airlock create / enter / list / delete` keeps long-lived environments across sessions
 - **Live workspace mounting** — mounts your current directory at `/workspace` with instant file sync
 - **Zero-prompt launch** — drop a `.airlock` file in any project to bypass menus and prompts
 - **Automatic Docker user mapping** — maps host UID/GID (`--user $(id -u):$(id -g)`) to eliminate `root:root` file ownership issues
