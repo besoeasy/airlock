@@ -362,6 +362,7 @@ devbox_validate_name() {
 devbox_image_for_distro() {
     case "${1:-debian}" in
         alpine) echo "docker.io/library/alpine:latest" ;;
+        arch|archlinux) echo "docker.io/library/archlinux:latest" ;;
         fedora) echo "docker.io/library/fedora:latest" ;;
         ubuntu) echo "docker.io/library/ubuntu:latest" ;;
         debian|*) echo "docker.io/library/debian:stable" ;;
@@ -381,7 +382,7 @@ devbox_shell() {
     devbox_shell_for_image "$($rt inspect --format '{{.Config.Image}}' "$B_NAME")"
 }
 
-# Prompts for a box OS (stdout: alpine|debian|fedora|ubuntu, prompts: stderr).
+# Prompts for a box OS (stdout: alpine|archlinux|debian|fedora|ubuntu, prompts: stderr).
 # Defaults to debian on empty/invalid input or when stdin is not interactive.
 devbox_prompt_distro() {
     local distro
@@ -390,6 +391,7 @@ devbox_prompt_distro() {
     echo "  2) Alpine" >&2
     echo "  3) Fedora" >&2
     echo "  4) Ubuntu" >&2
+    echo "  5) Arch Linux" >&2
     if ! read -rp "Distro [debian]: " distro; then
         echo "(no input detected — using debian)" >&2
         echo "debian"
@@ -400,6 +402,7 @@ devbox_prompt_distro() {
         2|al|alpine) echo "alpine" ;;
         3|fed|fedora) echo "fedora" ;;
         4|ub|ubuntu) echo "ubuntu" ;;
+        5|arch|archlinux) echo "archlinux" ;;
         *) echo "Invalid distro, using debian." >&2; echo "debian" ;;
     esac
 }
@@ -411,9 +414,9 @@ devbox_create() {
         exit 1
     fi
     case "$distro" in
-        alpine|debian|fedora|ubuntu) ;;
+        alpine|arch|archlinux|debian|fedora|ubuntu) ;;
         *)
-            echo "Error: invalid distro: '$distro' (expected alpine, debian, fedora, or ubuntu)" >&2
+            echo "Error: invalid distro: '$distro' (expected alpine, archlinux, debian, fedora, or ubuntu)" >&2
             exit 1
             ;;
     esac
@@ -870,7 +873,7 @@ show_help() {
     echo "  Security:  kali, trivy"
     echo
     echo "Development boxes:"
-    echo "  airlock enter mybox           Enter a box; asks OS (debian, alpine, fedora, ubuntu) if new"
+    echo "  airlock enter mybox           Enter a box; asks OS (debian, alpine, fedora, ubuntu, archlinux) if new"
     echo "  airlock list                  List all boxes"
     echo "  airlock delete mybox          Delete a box and its state"
     echo
