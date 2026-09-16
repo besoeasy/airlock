@@ -33,9 +33,18 @@ sudo curl -fsSL https://raw.githubusercontent.com/besoeasy/airlock/main/airlock 
 ```bash
 airlock            # launches .airlock if present, or opens interactive menu
 airlock [runtime]  # directly launch a specific runtime (e.g. airlock python)
+airlock init       # create a starter .airlock (auto-detects runtime)
 airlock devbox     # create/list/enter/remove persistent development boxes
 airlock --version  # show local and remote versions
 airlock --help     # show help and available runtimes
+```
+
+### Shell completions
+
+```bash
+airlock completion bash >> ~/.bashrc   # or ~/.bash_profile
+airlock completion zsh > ~/.zfunc/_airlock
+airlock completion fish > ~/.config/fish/completions/airlock.fish
 ```
 
 ## Supported Runtimes
@@ -81,6 +90,14 @@ airlock devbox rm mybox       # remove a devbox and its state
 Boxes are independent: they do **not** mount your current directory and do not map your host user, so you can freely run `apt install` as root inside them.
 
 ## Configuration (`.airlock`)
+
+Generate a starter file with `airlock init` (auto-detects from `package.json`, `go.mod`, `Cargo.toml`, `requirements.txt`, etc.):
+
+```bash
+airlock init node       # explicit runtime
+airlock init            # auto-detect or prompt
+airlock init --force    # overwrite existing .airlock
+```
 
 Drop a `.airlock` file in your repository to pre-configure your runtime environment. When `.airlock` is present, running `airlock` automatically launches the container with your settings and **skips all interactive questions**:
 
