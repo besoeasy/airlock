@@ -7,7 +7,7 @@ GITHUB_REPO="besoeasy/airlock"
 RELEASE_API_URL="https://api.github.com/repos/${GITHUB_REPO}/releases/latest"
 
 # Latest released version via GitHub Releases API (no jq dependency).
-# Prints e.g. "0.0.1" or "unavailable" (offline, rate-limited, no releases yet).
+# Prints e.g. "2026.09.16" or "unavailable" (offline, rate-limited, no releases yet).
 # To avoid hammering the API (menu header runs on every render, unauthenticated
 # limit is 60 req/hr), the network check runs on ~20% of invocations; otherwise
 # the local version is returned (i.e. "assume current, no update notice").
@@ -36,11 +36,12 @@ get_latest_version() {
 
 # Returns 0 if version $1 is newer than version $2 (numeric per-component).
 # Non-numeric suffixes are ignored ("1.2-rc1" compares as "1.2").
+# Supports CalVer with a same-day counter (2026.09.16.1).
 version_greater() {
     local a="${1#v}" b="${2#v}" i ai bi
     local IFS=.
     local a_parts=($a) b_parts=($b)
-    for i in 0 1 2; do
+    for i in 0 1 2 3; do
         ai="${a_parts[$i]:-0}"; bi="${b_parts[$i]:-0}"
         ai="${ai%%[^0-9]*}"; bi="${bi%%[^0-9]*}"
         ai="${ai:-0}"; bi="${bi:-0}"
