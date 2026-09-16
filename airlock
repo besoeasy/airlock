@@ -65,7 +65,7 @@ detect_runtime() {
     elif command -v docker >/dev/null 2>&1; then
         echo "docker"
     else
-        echo "Error: docker or podman required." >&2
+        echo "Error: container engine required. Install Podman (recommended) or Docker." >&2
         exit 1
     fi
 }

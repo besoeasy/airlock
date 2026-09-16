@@ -99,7 +99,7 @@ Explore pre-configured `.airlock` templates in the [**example/**](./example) dir
 - **Zero-prompt launch** — drop a `.airlock` file in any project to bypass menus and prompts
 - **Automatic Docker user mapping** — maps host UID/GID (`--user $(id -u):$(id -g)`) to eliminate `root:root` file ownership issues
 - **Fork bomb protection** — enforced process limit (`--pids-limit 256`)
-- **Engine auto-detection** — automatically detects and prefers Podman, with full Docker support
+- **Engine auto-detection** — automatically detects Podman first and uses it whenever available; Docker is a fallback only
 - **SELinux out of the box** — automatic `:z` volume relabeling for Fedora, RHEL, and CentOS
 - **AI agent ready** — automatically forwards LLM API keys (`OPENAI_API_KEY`, `ANTHROPIC_API_KEY`, `GEMINI_API_KEY`, `OPENROUTER_API_KEY`, `DEEPSEEK_API_KEY`) to Aider
 - **20 runtimes organized into 4 categories:**
@@ -109,11 +109,22 @@ Explore pre-configured `.airlock` templates in the [**example/**](./example) dir
   - **Security & Auditing:** Kali Linux, Trivy (Security Scanner)
 
 > [!TIP]
-> Airlock recommends and works best with **[Podman](https://podman.io/)** — rootless and daemonless containers provide an extra layer of security when running untrusted code. Docker is also supported.
+> Airlock is built **Podman-first**. [**Podman**](https://podman.io/) is rootless and daemonless, so containers run with your user permissions — an extra layer of safety when running untrusted or cloned-repo code. Airlock always prefers Podman when it's installed. Docker is supported as a fallback, but we recommend installing Podman:
+> ```bash
+> # Debian/Ubuntu
+> sudo apt install podman
+> # Fedora/RHEL
+> sudo dnf install podman
+> # Arch
+> sudo pacman -S podman
+> # macOS
+> brew install podman && podman machine init && podman machine start
+> ```
+> Note: on Docker, Airlock maps your host UID/GID into the container so `/workspace` files stay yours; with Podman this is unnecessary because it is already rootless.
 
 ## Supported Host Operating Systems
 
-Airlock runs on any operating system equipped with **Podman** or **Docker**:
+Airlock runs on any operating system equipped with a container engine. **Podman is preferred and recommended; Docker works as a fallback when Podman is not installed:**
 
 | Host OS | Recommended Engine | Security System | Support Status |
 |---|---|---|:---:|
