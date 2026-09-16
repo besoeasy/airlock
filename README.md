@@ -54,8 +54,7 @@ Exit a disposable runtime and it's gone — no SDKs, compilers, or toolchains le
 - **Fork bomb protection** — enforced process limit (`--pids-limit 256`)
 - **Podman required** — the installer sets it up automatically when missing; no Docker, no daemon
 - **SELinux out of the box** — automatic `:z` volume relabeling for Fedora, RHEL, and CentOS
-- **AI agent ready** — automatically forwards LLM API keys (`OPENAI_API_KEY`, `ANTHROPIC_API_KEY`, `GEMINI_API_KEY`, `OPENROUTER_API_KEY`, `DEEPSEEK_API_KEY`) to Aider
-- **20 runtimes organized into 4 categories** — see [Supported Runtimes](#supported-runtimes) for the full image table
+- **19 runtimes organized into 4 categories** — see [Supported Runtimes](#supported-runtimes) for the full image table
 
 > [!TIP]
 > Airlock requires [**Podman**](https://podman.io/). Podman is rootless and daemonless, so containers run with your user permissions — an extra layer of safety when running untrusted or cloned-repo code. The installer installs it for you when missing; manual commands per distro:
@@ -111,7 +110,7 @@ airlock completion fish > ~/.config/fish/completions/airlock.fish
 
 ## Supported Runtimes
 
-20 disposable runtimes in 4 categories. Run with `airlock <runtime>` (e.g. `airlock python`). Your current directory is mounted at `/workspace`.
+19 disposable runtimes in 4 categories. Run with `airlock <runtime>` (e.g. `airlock python`). Your current directory is mounted at `/workspace`.
 
 | Category | Runtime | Container Image | Aliases / Notes |
 |---|---|---|---|
@@ -131,7 +130,6 @@ airlock completion fish > ~/.config/fish/completions/airlock.fish
 | Linux Distributions | `fedora` | `docker.io/library/fedora:latest` | `bash` |
 | Linux Distributions | `nix` | `docker.io/nixos/nix:latest` | `sh` |
 | Linux Distributions | `ubuntu` | `docker.io/library/ubuntu:latest` | `bash` |
-| AI Coding Agents | `aider` | `docker.io/paulgauthier/aider` | forwards `OPENAI/ANTHROPIC/GEMINI/OPENROUTER/DEEPSEEK_API_KEY` |
 | AI Coding Agents | `opencode` | `ghcr.io/anomalyco/opencode` | — |
 | Security & Auditing | `kali` | `docker.io/kalilinux/kali-rolling:latest` | `kalilinux` — `bash` |
 | Security & Auditing | `trivy` | `docker.io/aquasec/trivy:latest` | `semgrep` — runs `fs /workspace` |
@@ -219,7 +217,7 @@ Airlock runs anywhere Podman runs. **Podman is required** — the installer inst
 | | Toolbox | Airlock |
 |---|---|---|
 | Model | One persistent pet container | Disposable per-runtime sandboxes + optional persistent devboxes |
-| Startup | `toolbox create` / `enter` with a host-matched image | `airlock python` — 20 runtimes, zero setup |
+| Startup | `toolbox create` / `enter` with a host-matched image | `airlock python` — 19 runtimes, zero setup |
 | Runtimes | Single OS userland per toolbox | 10 languages, 6 distros, AI agents, security scanners |
 | Per-project config | None (set up tools by hand inside) | `.airlock` file: runtime, ports, env, network — plus `airlock init` generator |
 | Workspace | Shares your entire `$HOME` | Mounts only the current dir at `/workspace`; gone on exit |
@@ -232,7 +230,7 @@ Airlock runs anywhere Podman runs. **Podman is required** — the installer inst
 ## Use cases
 
 - **Polyglot development:** Test, compile, and run code in 10 languages without installing SDKs or compilers on your host
-- **Run AI coding agents:** Run Aider or OpenCode inside a container without giving LLMs unrestricted host execution
+- **Run AI coding agents:** Run OpenCode inside a container without giving LLMs unrestricted host execution
 - **Isolate untrusted dependencies:** Run `npm install`, `bundle install`, or `composer install` without trusting unknown scripts
 - **Cross-distro testing:** Test scripts and binary packaging across Alpine, Arch, Debian, Fedora, and Ubuntu
 - **Security audits:** Scan repositories for CVEs and secret leaks with Trivy, or inspect binaries in Kali Linux

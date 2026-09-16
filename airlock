@@ -52,11 +52,11 @@ version_greater() {
 }
 
 # Canonical runtimes + accepted aliases (single source for help, init, completions).
-RUNTIMES_ALL="aider alpine arch archlinux bun c cpp gcc debian deno fedora go kali kalilinux nix node opencode php python ruby rust semgrep trivy ubuntu zig"
+RUNTIMES_ALL="alpine arch archlinux bun c cpp gcc debian deno fedora go kali kalilinux nix node opencode php python ruby rust semgrep trivy ubuntu zig"
 
 is_known_runtime() {
     case "$1" in
-        aider|alpine|arch|archlinux|bun|c|cpp|gcc|debian|deno|fedora|go|kali|kalilinux|nix|node|opencode|php|python|ruby|rust|semgrep|trivy|ubuntu|zig)
+        alpine|arch|archlinux|bun|c|cpp|gcc|debian|deno|fedora|go|kali|kalilinux|nix|node|opencode|php|python|ruby|rust|semgrep|trivy|ubuntu|zig)
             return 0 ;;
         *) return 1 ;;
     esac
@@ -268,12 +268,6 @@ launch() {
 
     local -a image_args
     case "$name" in
-        aider)
-            image_args=(
-                -e OPENAI_API_KEY -e ANTHROPIC_API_KEY -e GEMINI_API_KEY -e OPENROUTER_API_KEY -e DEEPSEEK_API_KEY
-                docker.io/paulgauthier/aider
-            )
-            ;;
         alpine)
             image_args=(docker.io/library/alpine:latest sh)
             ;;
@@ -627,16 +621,14 @@ menu_ai() {
     while true; do
         echo
         echo "=== AI Coding Agents ==="
-        echo "1) Aider"
-        echo "2) OpenCode"
+        echo "1) OpenCode"
         echo "b) Back to categories"
         echo "q) Quit"
         echo
         read -rp "Select AI agent (or 'b' to go back, 'q' to quit): " choice
 
         case "$choice" in
-            1|aider) launch aider; exit 0 ;;
-            2|opencode) launch opencode; exit 0 ;;
+            1|opencode) launch opencode; exit 0 ;;
             b|B|back|BACK) return 0 ;;
             q|Q|exit|"") exit 0 ;;
             *) echo "Invalid option." >&2 ;;
@@ -672,7 +664,7 @@ menu() {
         echo "Select a category:"
         echo "1) Programming Languages  (Bun, C/C++, Deno, Go, Node, PHP, Python, Ruby, Rust, Zig)"
         echo "2) Linux Distributions    (Alpine, Arch, Debian, Fedora, Nix, Ubuntu)"
-        echo "3) AI Coding Agents       (Aider, OpenCode)"
+        echo "3) AI Coding Agents       (OpenCode)"
         echo "4) Security & Auditing    (Kali Linux, Trivy)"
         echo "5) Development Boxes      (Persistent containers)"
         echo "q) Quit"
@@ -874,7 +866,7 @@ show_help() {
     echo "Available runtimes:"
     echo "  Languages: bun, c, cpp, deno, gcc, go, node, php, python, ruby, rust, zig"
     echo "  Distros:   alpine, arch, debian, fedora, nix, ubuntu"
-    echo "  AI Agents: aider, opencode"
+    echo "  AI Agents: opencode"
     echo "  Security:  kali, trivy"
     echo
     echo "Development boxes:"
@@ -909,7 +901,7 @@ elif [ "${1:-}" = "--help" ] || [ "${1:-}" = "-h" ]; then
     show_help
 elif [ -n "${1:-}" ]; then
     case "$1" in
-        aider|alpine|arch|archlinux|bun|c|cpp|gcc|debian|deno|fedora|go|kali|kalilinux|nix|node|opencode|php|python|ruby|rust|semgrep|trivy|ubuntu|zig)
+        alpine|arch|archlinux|bun|c|cpp|gcc|debian|deno|fedora|go|kali|kalilinux|nix|node|opencode|php|python|ruby|rust|semgrep|trivy|ubuntu|zig)
             launch "$1"
             ;;
         enter)
