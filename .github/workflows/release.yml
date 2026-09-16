@@ -5,7 +5,7 @@ name: Release
 # UTC date is used (YYYY.MM.DD), auto-suffixed (.1, .2, ...) if taken.
 # No VERSION bookkeeping here: install.sh stamps the resolved tag into
 # the copy it installs, so 'airlock --version' always knows its source.
-# Retention: only the newest 100 releases are kept, oldest pruned first.
+# Retention: only the newest 60 releases are kept, oldest pruned first.
 
 on:
   workflow_dispatch:
@@ -75,7 +75,7 @@ jobs:
       - name: Prune old releases (keep newest $KEEP)
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-          KEEP: 100
+          KEEP: 60
         run: |
           set -e
           [[ "$KEEP" =~ ^[0-9]+$ ]] || { echo "Invalid KEEP: $KEEP" >&2; exit 1; }
