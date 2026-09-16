@@ -33,9 +33,23 @@ sudo curl -fsSL https://raw.githubusercontent.com/besoeasy/airlock/main/airlock 
 ```bash
 airlock            # launches .airlock if present, or opens interactive menu
 airlock [runtime]  # directly launch a specific runtime (e.g. airlock python)
+airlock devbox     # create/list/enter/remove persistent development boxes
 airlock --version  # show local and remote versions
 airlock --help     # show help and available runtimes
 ```
+
+## Development Boxes
+
+Persistent Debian containers that outlive your shell, running with host networking. Unlike the disposable runtimes above, a devbox keeps its state — install packages, run services, and return to the same environment later. Boxes are named `airlock-<name>`.
+
+```bash
+airlock devbox create mybox   # create a persistent Debian box (host network)
+airlock devbox enter mybox    # enter a box, creating it on first use
+airlock devbox list           # list all devboxes
+airlock devbox rm mybox       # remove a devbox and its state
+```
+
+Boxes are independent: they do **not** mount your current directory and do not map your host user, so you can freely run `apt install` as root inside them.
 
 ## Configuration (`.airlock`)
 
@@ -80,6 +94,7 @@ Explore pre-configured `.airlock` templates in the [**example/**](./example) dir
 ## Features
 
 - **Disposable containers** — exit and everything inside the container is gone
+- **Persistent devboxes** — `airlock devbox` keeps long-lived Debian environments across sessions
 - **Live workspace mounting** — mounts your current directory at `/workspace` with instant file sync
 - **Zero-prompt launch** — drop a `.airlock` file in any project to bypass menus and prompts
 - **Automatic Docker user mapping** — maps host UID/GID (`--user $(id -u):$(id -g)`) to eliminate `root:root` file ownership issues

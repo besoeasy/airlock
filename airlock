@@ -289,6 +289,141 @@ launch() {
         "${image_args[@]}"
 }
 
+devbox_basename() {
+    B_NAME="airlock-$1"
+}
+
+devbox_exists() {
+    [ -n "$($rt ps -a --filter "name=^/$B_NAME$" --format '{{.Names}}')" ]
+}
+
+devbox_validate_name() {
+    [[ "$1" =~ ^[A-Za-z0-9][A-Za-z0-9_.-]*$ ]]
+}
+
+devbox_create() {
+    local name="$1"
+    if [ -z "$name" ]; then
+        echo "Error: devbox name required (e.g. airlock devbox create mysandbox)" >&2
+        exit 1
+    fi
+    if ! devbox_validate_name "$name"; then
+        echo "Error: invalid devbox name: '$name'" >&2
+        echo "Names may contain letters, digits, '_', '.', '-' (no spaces)." >&2
+        exit 1
+    fi
+    rt=$(detect_runtime)
+    devbox_basename "$name"
+    if devbox_exists; then
+        echo "Devbox '$name' already exists ($B_NAME)" >&2
+        exit 1
+    fi
+    $rt run -d --name "$B_NAME" --network host \
+        docker.io/library/debian:stable bash -c 'sleep infinity'
+    echo "Created devbox '$name' ($B_NAME)"
+}
+
+devbox_enter() {
+    local name="$1"
+    if [ -z "$name" ]; then
+        echo "Error: devbox name required (e.g. airlock devbox enter mysandbox)" >&2
+        exit 1
+    fi
+    if ! devbox_validate_name "$name"; then
+        echo "Error: invalid devbox name: '$name'" >&2
+        exit 1
+    fi
+    rt=$(detect_runtime)
+    devbox_basename "$name"
+    if ! devbox_exists; then
+        devbox_create "$name"
+    elif [ "$($rt inspect -f '{{.State.Running}}' "$B_NAME")" != "true" ]; then
+        $rt start "$B_NAME"
+    fi
+    $rt exec -it "$B_NAME" bash
+}
+
+devbox_list() {
+    rt=$(detect_runtime)
+    $rt ps -a --filter "name=airlock-" --format 'table {{.Names}}\t{{.Image}}\t{{.Status}}'
+}
+
+devbox_rm() {
+    local name="$1"
+    if [ -z "$name" ]; then
+        echo "Error: devbox name required (e.g. airlock devbox rm mysandbox)" >&2
+        exit 1
+    fi
+    if ! devbox_validate_name "$name"; then
+        echo "Error: invalid devbox name: '$name'" >&2
+        exit 1
+    fi
+    rt=$(detect_runtime)
+    devbox_basename "$name"
+    if ! devbox_exists; then
+        echo "Devbox '$name' not found ($B_NAME)" >&2
+        exit 1
+    fi
+    $rt rm -f "$B_NAME"
+    echo "Removed devbox '$name' ($B_NAME)"
+}
+
+devbox_usage() {
+    echo "Usage: airlock devbox <command> [name]" >&2
+    echo "Commands:" >&2
+    echo "  create <name>   Create a persistent Debian devbox (host network)" >&2
+    echo "  enter <name>    Enter a devbox, creating it if it does not exist" >&2
+    echo "  list            List all devboxes" >&2
+    echo "  rm <name>       Remove a devbox" >&2
+}
+
+devbox_cmd() {
+    local sub="${1:-}"
+    case "$sub" in
+        create|c) devbox_create "${2:-}" ;;
+        enter|in|exec) devbox_enter "${2:-}" ;;
+        list|ls) devbox_list ;;
+        rm|remove|delete) devbox_rm "${2:-}" ;;
+        help|h) devbox_usage ;;
+        *) devbox_usage; exit 1 ;;
+    esac
+}
+
+menu_devboxes() {
+    while true; do
+        echo
+        echo "=== Development Boxes ==="
+        echo "1) Create a devbox"
+        echo "2) Enter a devbox"
+        echo "3) List devboxes"
+        echo "4) Remove a devbox"
+        echo "b) Back to main menu"
+        echo "q) Quit"
+        echo
+        read -rp "Select option (or 'b' to go back, 'q' to quit): " choice
+
+        case "$choice" in
+            1|c|create)
+                read -rp "Devbox name: " name
+                devbox_create "$name"
+                ;;
+            2|e|enter)
+                read -rp "Devbox name: " name
+                devbox_enter "$name"
+                ;;
+            3|l|list|ls) devbox_list ;;
+            4|r|rm|remove)
+                read -rp "Devbox name: " name
+                devbox_rm "$name"
+                ;;
+            b|B|back|BACK) return 0 ;;
+            q|Q|exit|"") exit 0 ;;
+            *) echo "Invalid option." >&2 ;;
+        esac
+        echo
+    done
+}
+
 show_header() {
     local rt
     rt=$(detect_runtime)
@@ -436,6 +571,7 @@ menu() {
         echo "2) Linux Distributions    (Alpine, Arch, Debian, Fedora, Nix, Ubuntu)"
         echo "3) AI Coding Agents       (Aider, OpenCode)"
         echo "4) Security & Auditing    (Kali Linux, Trivy)"
+        echo "5) Development Boxes      (Persistent Debian containers)"
         echo "q) Quit"
         echo
         read -rp "Select category (or 'q' to quit): " choice
@@ -445,6 +581,7 @@ menu() {
             2|distro|distros|linux) menu_distros ;;
             3|ai|agent|agents) menu_ai ;;
             4|sec|security) menu_security ;;
+            5|dev|devbox|boxes|development) menu_devboxes ;;
             q|Q|exit|"") exit 0 ;;
             *) echo "Invalid option." >&2 ;;
         esac
@@ -464,6 +601,12 @@ show_help() {
     echo "  Distros:   alpine, arch, debian, fedora, nix, ubuntu"
     echo "  AI Agents: aider, opencode"
     echo "  Security:  kali, trivy"
+    echo
+    echo "Development boxes:"
+    echo "  airlock devbox create <name>  Create a persistent Debian devbox (host network, named airlock-<name>)"
+    echo "  airlock devbox enter <name>   Enter a devbox, creating it if it does not exist"
+    echo "  airlock devbox list           List all devboxes"
+    echo "  airlock devbox rm <name>      Remove a devbox"
     echo
     echo "Configuration file (.airlock):"
     echo "  When a .airlock file is present in the current directory, Airlock"
@@ -495,9 +638,12 @@ elif [ -n "${1:-}" ]; then
         aider|alpine|arch|archlinux|bun|c|cpp|gcc|debian|deno|fedora|go|kali|kalilinux|nix|node|opencode|php|python|ruby|rust|semgrep|trivy|ubuntu|zig)
             launch "$1"
             ;;
+        devbox|db)
+            devbox_cmd "${2:-}" "${3:-}"
+            ;;
         *)
             echo "Unknown option: $1" >&2
-            echo "Usage: airlock [-h|--help] [-v|--version] [runtime]" >&2
+            echo "Usage: airlock [-h|--help] [-v|--version] [runtime] [devbox <command> [name]]" >&2
             exit 1
             ;;
     esac
