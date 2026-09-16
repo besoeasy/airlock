@@ -70,7 +70,14 @@ jobs:
           else
             NOTES="$(git log --format='- %h %s' -10 "$SHA")"
           fi
-          gh release create "$TAG" --target "$SHA" --title "$TAG" --notes "$NOTES"
+          # Stamp a copy for direct downloaders: the repo keeps VERSION="dev"
+          # (install.sh stamps on install), so the raw asset would otherwise
+          # report "dev". Release carries exactly two assets: airlock + README.
+          VER="${TAG#v}"
+          sed -E "s/^VERSION=\"[^\"]*\"/VERSION=\"$VER\"/" airlock > /tmp/airlock-release
+          bash -n /tmp/airlock-release
+          gh release create "$TAG" --target "$SHA" --title "$TAG" --notes "$NOTES" \
+            /tmp/airlock-release#airlock README.md
 
       - name: Prune old releases (keep newest $KEEP)
         env:
