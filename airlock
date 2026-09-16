@@ -532,11 +532,7 @@ menu_devboxes() {
 show_header() {
     local rt
     rt=$(detect_runtime)
-    if [[ "$VERSION" =~ ^v?[0-9] ]]; then
-        echo "Airlock v${VERSION#v}"
-    else
-        echo "Airlock ($VERSION)"
-    fi
+    echo "Airlock $VERSION"
     printf 'Runtime: %s\n' "$rt"
     if is_selinux_enabled; then
         echo "SELinux: enabled (:z flag active)"
