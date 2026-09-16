@@ -76,10 +76,10 @@ airlock completion fish > ~/.config/fish/completions/airlock.fish
 
 ## Development Boxes
 
-Persistent Debian containers that outlive your shell, running with host networking. Unlike the disposable runtimes above, a devbox keeps its state — install packages, run services, and return to the same environment later. Boxes are named `airlock-<name>`.
+Persistent containers that outlive your shell, running with host networking. Unlike the disposable runtimes above, a devbox keeps its state — install packages, run services, and return to the same environment later. Boxes are named `airlock-<name>` and default to Debian, with Alpine, Fedora, and Ubuntu available when creating via the interactive menu.
 
 ```bash
-airlock devbox create mybox   # create a persistent Debian box (host network)
+airlock devbox create mybox   # create a persistent box (default: Debian, host network)
 airlock devbox enter mybox    # enter a box, creating it on first use
 airlock devbox mybox          # shortcut for 'enter mybox'
 airlock devbox                # shortcut for 'list'

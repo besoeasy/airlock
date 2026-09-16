@@ -359,8 +359,31 @@ devbox_validate_name() {
     [[ "$1" =~ ^[A-Za-z0-9][A-Za-z0-9_.-]*$ ]]
 }
 
+# Maps a distro name to its container image (default: Debian).
+devbox_image_for_distro() {
+    case "${1:-debian}" in
+        alpine) echo "docker.io/library/alpine:latest" ;;
+        fedora) echo "docker.io/library/fedora:latest" ;;
+        ubuntu) echo "docker.io/library/ubuntu:latest" ;;
+        debian|*) echo "docker.io/library/debian:stable" ;;
+    esac
+}
+
+# Returns the shell available in a devbox image (Alpine has no bash).
+devbox_shell_for_image() {
+    case "$1" in
+        *alpine*) echo "sh" ;;
+        *) echo "bash" ;;
+    esac
+}
+
+# Shell for a devbox's container image (used by devbox_enter).
+devbox_shell() {
+    devbox_shell_for_image "$($rt inspect --format '{{.Config.Image}}' "$B_NAME")"
+}
+
 devbox_create() {
-    local name="$1"
+    local name="$1" distro="${2:-debian}" image shell
     if [ -z "$name" ]; then
         echo "Error: devbox name required (e.g. airlock devbox create mysandbox)" >&2
         exit 1
@@ -376,9 +399,11 @@ devbox_create() {
         echo "Devbox '$name' already exists ($B_NAME)" >&2
         exit 1
     fi
+    image=$(devbox_image_for_distro "$distro")
+    shell=$(devbox_shell_for_image "$image")
     $rt run -d --name "$B_NAME" --network host \
-        docker.io/library/debian:stable bash -c 'sleep infinity'
-    echo "Created devbox '$name' ($B_NAME)"
+        "$image" "$shell" -c 'sleep infinity'
+    echo "Created devbox '$name' ($B_NAME) [$distro]"
 }
 
 devbox_enter() {
@@ -398,7 +423,7 @@ devbox_enter() {
     elif [ "$($rt inspect -f '{{.State.Running}}' "$B_NAME")" != "true" ]; then
         $rt start "$B_NAME"
     fi
-    $rt exec -it "$B_NAME" bash
+    $rt exec -it "$B_NAME" "$(devbox_shell)"
 }
 
 devbox_list() {
@@ -441,13 +466,14 @@ devbox_rm() {
 devbox_usage() {
     echo "Usage: airlock devbox [<command>] [name]" >&2
     echo "Commands:" >&2
-    echo "  create <name>   Create a persistent Debian devbox (host network)" >&2
+    echo "  create <name>   Create a persistent devbox (host network, default distro: Debian)" >&2
     echo "  enter <name>    Enter a devbox, creating it if it does not exist" >&2
     echo "  list            List all devboxes" >&2
     echo "  rm <name>       Remove a devbox" >&2
     echo "Shortcuts:" >&2
     echo "  airlock devbox            Same as 'airlock devbox list'" >&2
     echo "  airlock devbox <name>     Same as 'airlock devbox enter <name>'" >&2
+    echo "Distros (menu create): Debian (default), Alpine, Fedora, Ubuntu" >&2
 }
 
 devbox_cmd() {
@@ -494,7 +520,20 @@ menu_devboxes() {
             1|c|create)
                 devbox_show_existing
                 read -rp "Devbox name: " name
-                devbox_create "$name"
+                echo "Choose a distro:"
+                echo "  1) Debian (default)"
+                echo "  2) Alpine"
+                echo "  3) Fedora"
+                echo "  4) Ubuntu"
+                read -rp "Distro [debian]: " distro
+                case "$distro" in
+                    ""|1|deb|debian) distro=debian ;;
+                    2|al|alpine) distro=alpine ;;
+                    3|fed|fedora) distro=fedora ;;
+                    4|ub|ubuntu) distro=ubuntu ;;
+                    *) echo "Invalid distro, using debian." >&2; distro=debian ;;
+                esac
+                devbox_create "$name" "$distro"
                 ;;
             2|e|enter)
                 devbox_show_existing
@@ -865,11 +904,12 @@ show_help() {
     echo "  Security:  kali, trivy"
     echo
     echo "Development boxes:"
-    echo "  airlock devbox create <name>  Create a persistent Debian devbox (host network, named airlock-<name>)"
-    echo "  airlock devbox enter <name>   Enter a devbox, creating it if it does not exist"
-    echo "  airlock devbox list           List all devboxes (default when no args given)"
-    echo "  airlock devbox rm <name>      Remove a devbox"
-    echo "  airlock devbox <name>         Shortcut for 'airlock devbox enter <name>'"
+    echo "  airlock devbox create <name>   Create a persistent devbox (host network, name: airlock-<name>)"
+    echo "                                 Distros (menu create): Debian (default), Alpine, Fedora, Ubuntu"
+    echo "  airlock devbox enter <name>    Enter a devbox, creating it if it does not exist"
+    echo "  airlock devbox list            List all devboxes (default when no args given)"
+    echo "  airlock devbox rm <name>       Remove a devbox"
+    echo "  airlock devbox <name>          Shortcut for 'airlock devbox enter <name>'"
     echo
     echo "Configuration file (.airlock):"
     echo "  When a .airlock file is present in the current directory, Airlock"
