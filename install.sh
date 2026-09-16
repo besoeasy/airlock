@@ -2,9 +2,31 @@
 set -e
 
 REPO="besoeasy/airlock"
-AIRLOCK_URL="https://raw.githubusercontent.com/${REPO}/main/airlock"
+RELEASE_API_URL="https://api.github.com/repos/${REPO}/releases/latest"
 
 echo "==> Airlock Installer"
+
+# Resolve latest release tag (e.g. v0.0.1) via GitHub Releases API.
+# Falls back to 'main' when offline, rate-limited, or no releases exist yet.
+# NOTE: only called in the download branch below — local installs skip the API.
+resolve_source_ref() {
+    local api_json tag
+    if command -v curl >/dev/null 2>&1; then
+        api_json=$(curl -fsSL --connect-timeout 3 --max-time 8 "$RELEASE_API_URL" 2>/dev/null) || { echo "main"; return 0; }
+    elif command -v wget >/dev/null 2>&1; then
+        api_json=$(wget -qO- --connect-timeout=3 --timeout=8 "$RELEASE_API_URL" 2>/dev/null) || { echo "main"; return 0; }
+    else
+        echo "main"
+        return 0
+    fi
+    tag=$(printf '%s' "$api_json" | grep -m1 '"tag_name"' | sed -E 's/.*"tag_name"[[:space:]]*:[[:space:]]*"([^"]+)".*/\1/')
+    tag=$(printf '%s' "$tag" | tr -d '[:space:]')
+    if [ -n "$tag" ]; then
+        echo "$tag"
+    else
+        echo "main"
+    fi
+}
 
 # 1. Determine target directory
 if [ "$(id -u)" -eq 0 ] || [ -w "/usr/local/bin" ]; then
@@ -46,14 +68,24 @@ trap 'rm -f "$TMP_FILE"' EXIT
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]:-$0}")" 2>/dev/null && pwd)"
 if [ -f "${SCRIPT_DIR}/airlock" ] && [ "${SCRIPT_DIR}" != "$TARGET_DIR" ]; then
+    echo "Installing from local copy (${SCRIPT_DIR}/airlock)..."
     cp "${SCRIPT_DIR}/airlock" "$TMP_FILE"
-elif command -v curl >/dev/null 2>&1; then
-    curl -fsSL "$AIRLOCK_URL" -o "$TMP_FILE"
-elif command -v wget >/dev/null 2>&1; then
-    wget -qO "$TMP_FILE" "$AIRLOCK_URL"
 else
-    echo "Error: curl or wget is required to install Airlock." >&2
-    exit 1
+    SOURCE_REF="$(resolve_source_ref)"
+    AIRLOCK_URL="https://raw.githubusercontent.com/${REPO}/${SOURCE_REF}/airlock"
+    if [ "$SOURCE_REF" = "main" ]; then
+        echo "Using development branch (main) — no release found or offline."
+    else
+        echo "Using latest release: ${SOURCE_REF}"
+    fi
+    if command -v curl >/dev/null 2>&1; then
+        curl -fsSL "$AIRLOCK_URL" -o "$TMP_FILE"
+    elif command -v wget >/dev/null 2>&1; then
+        wget -qO "$TMP_FILE" "$AIRLOCK_URL"
+    else
+        echo "Error: curl or wget is required to install Airlock." >&2
+        exit 1
+    fi
 fi
 
 chmod +x "$TMP_FILE"

@@ -1,9 +1,54 @@
 #!/usr/bin/env bash
 set -e
 
-SELF="$(readlink -f "$0" 2>/dev/null || echo "$0")"
-VERSION="0.0.1"
+VERSION="0.0.2"
 PROJECT_URL="https://github.com/besoeasy/airlock"
+GITHUB_REPO="besoeasy/airlock"
+RELEASE_API_URL="https://api.github.com/repos/${GITHUB_REPO}/releases/latest"
+
+# Latest released version via GitHub Releases API (no jq dependency).
+# Prints e.g. "0.0.1" or "unavailable" (offline, rate-limited, no releases yet).
+# To avoid hammering the API (menu header runs on every render, unauthenticated
+# limit is 60 req/hr), the network check runs on ~20% of invocations; otherwise
+# the local version is returned (i.e. "assume current, no update notice").
+get_latest_version() {
+    local api_json tag
+    if [ $((RANDOM % 100)) -ge 20 ]; then
+        echo "$VERSION"
+        return 0
+    fi
+    if command -v curl >/dev/null 2>&1; then
+        api_json=$(curl -fsSL --connect-timeout 2 --max-time 5 "$RELEASE_API_URL" 2>/dev/null) || { echo "unavailable"; return 0; }
+    elif command -v wget >/dev/null 2>&1; then
+        api_json=$(wget -qO- --connect-timeout=2 --timeout=5 "$RELEASE_API_URL" 2>/dev/null) || { echo "unavailable"; return 0; }
+    else
+        echo "unavailable"
+        return 0
+    fi
+    tag=$(printf '%s' "$api_json" | grep -m1 '"tag_name"' | sed -E 's/.*"tag_name"[[:space:]]*:[[:space:]]*"v?([^"]+)".*/\1/')
+    tag=$(printf '%s' "$tag" | tr -d '[:space:]')
+    if [[ "$tag" =~ ^[0-9]+\.[0-9]+\.[0-9]+ ]]; then
+        echo "$tag"
+    else
+        echo "unavailable"
+    fi
+}
+
+# Returns 0 if version $1 is newer than version $2 (numeric per-component).
+# Non-numeric suffixes are ignored ("1.2-rc1" compares as "1.2").
+version_greater() {
+    local a="${1#v}" b="${2#v}" i ai bi
+    local IFS=.
+    local a_parts=($a) b_parts=($b)
+    for i in 0 1 2; do
+        ai="${a_parts[$i]:-0}"; bi="${b_parts[$i]:-0}"
+        ai="${ai%%[^0-9]*}"; bi="${bi%%[^0-9]*}"
+        ai="${ai:-0}"; bi="${bi:-0}"
+        if [ "$ai" -gt "$bi" ] 2>/dev/null; then return 0; fi
+        if [ "$ai" -lt "$bi" ] 2>/dev/null; then return 1; fi
+    done
+    return 1
+}
 
 # Canonical runtimes + accepted aliases (single source for help, init, completions).
 RUNTIMES_ALL="aider alpine arch archlinux bun c cpp gcc debian deno fedora go kali kalilinux nix node opencode php python ruby rust semgrep trivy ubuntu zig"
@@ -17,7 +62,14 @@ is_known_runtime() {
 }
 
 show_version() {
+    local latest_version
+    latest_version=$(get_latest_version)
+
     echo "Airlock version: $VERSION"
+    echo "Latest release: $latest_version"
+    if [ "$latest_version" != "unavailable" ] && version_greater "$latest_version" "$VERSION"; then
+        echo "Update available: $latest_version (re-run install.sh to update)"
+    fi
     if is_selinux_enabled; then
         echo "SELinux: enabled (:z flag active)"
     fi
@@ -130,6 +182,9 @@ load_airlock_config() {
         fi
     done < "$config_file"
 
+    if [ -n "$CFG_RUNTIME" ]; then
+        CFG_RUNTIME="$(printf '%s' "$CFG_RUNTIME" | tr '[:upper:]' '[:lower:]')"
+    fi
     if [ -n "$CFG_SELINUX" ] && [ -z "${AIRLOCK_SELINUX:-}" ]; then
         AIRLOCK_SELINUX="$CFG_SELINUX"
     fi
@@ -151,6 +206,9 @@ get_network_args() {
 
     if [ "$CFG_FOUND" = true ]; then
         if [ -n "$CFG_PORTS" ]; then
+            if [ -n "$CFG_NETWORK" ]; then
+                echo "Warning: .airlock sets both ports and network; ports take precedence (network ignored)" >&2
+            fi
             local p
             for p in $CFG_PORTS; do
                 is_valid_port "$p" || { echo "Invalid .airlock ports entry: '$p' (expected a number 1-65535)" >&2; exit 1; }
@@ -166,7 +224,10 @@ get_network_args() {
     fi
 
     local ports
-    read -rp "Ports to open (space-separated, e.g. 3000 8080) or Enter for --network host: " ports
+    if ! read -rp "Ports to open (space-separated, e.g. 3000 8080) or Enter for --network host: " ports; then
+        echo "(no input detected — using --network host)" >&2
+        ports=""
+    fi
 
     if [ -z "$ports" ]; then
         NET_ARGS=(--network host)
@@ -342,7 +403,7 @@ devbox_enter() {
 
 devbox_list() {
     rt=$(detect_runtime)
-    $rt ps -a --filter "name=airlock-" --format 'table {{.Names}}\t{{.Image}}\t{{.Status}}'
+    $rt ps -a --filter "name=^/airlock-" --format 'table {{.Names}}\t{{.Image}}\t{{.Status}}'
 }
 
 devbox_rm() {
@@ -460,6 +521,11 @@ show_header() {
         fi
     fi
     echo "Project: $PROJECT_URL"
+    local latest_version
+    latest_version=$(get_latest_version)
+    if [ "$latest_version" != "unavailable" ] && version_greater "$latest_version" "$VERSION"; then
+        printf 'Latest:  %s (update available: re-run install.sh)\n' "$latest_version"
+    fi
 }
 
 menu_languages() {
@@ -606,6 +672,8 @@ detect_project_runtime() {
     if [ -f ./composer.json ]; then echo "php"; return 0; fi
     if [ -f ./Gemfile ]; then echo "ruby"; return 0; fi
     if [ -f ./pyproject.toml ] || [ -f ./requirements.txt ] || [ -f ./.python-version ]; then echo "python"; return 0; fi
+    if [ -f ./build.zig ] || [ -f ./build.zig.zon ]; then echo "zig"; return 0; fi
+    if [ -f ./Makefile ] || [ -f ./CMakeLists.txt ]; then echo "c"; return 0; fi
     return 1
 }
 
@@ -835,6 +903,11 @@ elif [ -n "${1:-}" ]; then
             ;;
     esac
 elif [ -n "$CFG_RUNTIME" ]; then
+    if ! is_known_runtime "$CFG_RUNTIME"; then
+        echo "Invalid .airlock runtime: '$CFG_RUNTIME'" >&2
+        echo "Runtimes: $RUNTIMES_ALL" >&2
+        exit 1
+    fi
     echo "Found .airlock configuration (runtime: $CFG_RUNTIME)"
     launch "$CFG_RUNTIME"
 else

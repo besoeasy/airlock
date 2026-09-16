@@ -14,7 +14,7 @@
 
 ### One-line installer (Recommended)
 
-Handles rootless and system-wide installations automatically, configures `$PATH` across shells (Bash, Zsh, Fish), and updates Airlock when run again:
+Handles rootless and system-wide installations automatically, configures `$PATH` across shells (Bash, Zsh, Fish), and updates Airlock when run again. It installs from the latest GitHub release (falling back to `main` when offline):
 
 ```bash
 curl -fsSL https://raw.githubusercontent.com/besoeasy/airlock/main/install.sh | bash
@@ -35,7 +35,7 @@ airlock            # launches .airlock if present, or opens interactive menu
 airlock [runtime]  # directly launch a specific runtime (e.g. airlock python)
 airlock init       # create a starter .airlock (auto-detects runtime)
 airlock devbox     # create/list/enter/remove persistent development boxes
-airlock --version  # show version
+airlock --version  # show version + latest release (update notice)
 airlock --help     # show help and available runtimes
 ```
 
