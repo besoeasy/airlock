@@ -107,6 +107,9 @@ show_version() {
         else
             echo "Config: .airlock"
         fi
+        if [ -n "$CFG_SETUP" ]; then
+            echo "Setup:  $CFG_SETUP"
+        fi
     fi
 }
 
@@ -152,6 +155,8 @@ CFG_PORTS=""
 CFG_NETWORK=""
 CFG_USER=""
 CFG_SELINUX=""
+CFG_SETUP=""
+CFG_SHELL=""
 declare -a CFG_ENVS=()
 
 load_airlock_config() {
@@ -197,6 +202,12 @@ load_airlock_config() {
                     ;;
                 selinux)
                     CFG_SELINUX="$val"
+                    ;;
+                setup|init)
+                    CFG_SETUP="$val"
+                    ;;
+                shell)
+                    CFG_SHELL="$val"
                     ;;
                 env)
                     CFG_ENVS+=("$val")
@@ -289,86 +300,131 @@ launch() {
     fi
 
     local -a image_args
+    local default_shell="bash"
     case "$name" in
         alpine)
-            image_args=(docker.io/library/alpine:latest sh)
+            image_args=(docker.io/library/alpine:latest)
+            default_shell="sh"
             ;;
         archlinux|arch)
-            image_args=(docker.io/library/archlinux:latest bash)
+            image_args=(docker.io/library/archlinux:latest)
             ;;
         bun)
-            image_args=(docker.io/oven/bun:latest bash)
+            image_args=(docker.io/oven/bun:latest)
             ;;
         c|cpp|gcc)
-            image_args=(docker.io/library/gcc:latest bash)
+            image_args=(docker.io/library/gcc:latest)
             ;;
         debian)
-            image_args=(docker.io/library/debian:stable bash)
+            image_args=(docker.io/library/debian:stable)
             ;;
         deno)
-            image_args=(--entrypoint /bin/bash docker.io/denoland/deno:latest)
+            image_args=(docker.io/denoland/deno:latest)
             ;;
         fedora)
-            image_args=(docker.io/library/fedora:latest bash)
+            image_args=(docker.io/library/fedora:latest)
             ;;
         gitleaks)
             image_args=(docker.io/zricethezav/gitleaks:latest detect --source /workspace -v)
             ;;
         go)
-            image_args=(docker.io/library/golang:latest bash)
+            image_args=(docker.io/library/golang:latest)
             ;;
         grype)
             image_args=(docker.io/anchore/grype:latest /workspace)
             ;;
         hadolint)
-            image_args=(docker.io/hadolint/hadolint:latest-alpine sh)
+            image_args=(docker.io/hadolint/hadolint:latest-alpine)
+            default_shell="sh"
             ;;
         kali|kalilinux)
-            image_args=(docker.io/kalilinux/kali-rolling:latest bash)
+            image_args=(docker.io/kalilinux/kali-rolling:latest)
             ;;
         nix)
-            image_args=(docker.io/nixos/nix:latest sh)
+            image_args=(docker.io/nixos/nix:latest)
+            default_shell="sh"
             ;;
         node)
-            image_args=(docker.io/library/node:lts bash)
+            image_args=(docker.io/library/node:lts)
             ;;
         nmap)
-            image_args=(--entrypoint /bin/sh docker.io/instrumentisto/nmap:latest)
+            image_args=(docker.io/instrumentisto/nmap:latest)
+            default_shell="sh"
             ;;
         opencode)
             image_args=(ghcr.io/anomalyco/opencode)
             ;;
         php)
-            image_args=(docker.io/library/php:cli bash)
+            image_args=(docker.io/library/php:cli)
             ;;
         python)
-            image_args=(docker.io/library/python:3 bash)
+            image_args=(docker.io/library/python:3)
             ;;
         ruby)
-            image_args=(docker.io/library/ruby:latest bash)
+            image_args=(docker.io/library/ruby:latest)
             ;;
         rust)
-            image_args=(docker.io/library/rust:latest bash)
+            image_args=(docker.io/library/rust:latest)
             ;;
         semgrep)
             image_args=(docker.io/semgrep/semgrep:latest semgrep scan)
             ;;
         shellcheck)
-            image_args=(docker.io/koalaman/shellcheck-alpine:latest sh)
+            image_args=(docker.io/koalaman/shellcheck-alpine:latest)
+            default_shell="sh"
             ;;
         trivy)
             image_args=(docker.io/aquasec/trivy:latest fs /workspace)
             ;;
         ubuntu)
-            image_args=(docker.io/library/ubuntu:latest bash)
+            image_args=(docker.io/library/ubuntu:latest)
             ;;
         zig)
-            image_args=(--entrypoint /bin/sh docker.io/euantorano/zig:latest)
+            image_args=(docker.io/euantorano/zig:latest)
+            default_shell="sh"
             ;;
         *)
             echo "Unknown runtime: $name" >&2
             echo "Runtimes: $RUNTIMES_ALL" >&2
             exit 1
+            ;;
+    esac
+
+    # Handle entrypoints, shells, and optional lifecycle setup command
+    case "$name" in
+        gitleaks|grype|semgrep|trivy|opencode)
+            # Standalone tools/scanners run their default image command
+            ;;
+        *)
+            local shell_to_use="${CFG_SHELL:-$default_shell}"
+            if [ -n "$CFG_SETUP" ]; then
+                local setup_script
+                if [ -n "$CFG_SHELL" ]; then
+                    setup_script="$CFG_SETUP && exec $CFG_SHELL"
+                else
+                    setup_script="$CFG_SETUP && { command -v bash >/dev/null 2>&1 && exec bash || exec sh; }"
+                fi
+
+                case "$name" in
+                    deno|zig|nmap)
+                        local entry_bin="/bin/sh"
+                        if [ -n "$CFG_SHELL" ]; then entry_bin="/bin/$CFG_SHELL"; fi
+                        image_args=(--entrypoint "$entry_bin" "${image_args[@]}" -c "$setup_script")
+                        ;;
+                    *)
+                        image_args+=("sh" -c "$setup_script")
+                        ;;
+                esac
+            else
+                case "$name" in
+                    deno|zig|nmap)
+                        image_args=(--entrypoint "/bin/$shell_to_use" "${image_args[@]}")
+                        ;;
+                    *)
+                        image_args+=("$shell_to_use")
+                        ;;
+                esac
+            fi
             ;;
     esac
 
@@ -585,6 +641,9 @@ show_header() {
         else
             echo "Config:  .airlock"
         fi
+        if [ -n "$CFG_SETUP" ]; then
+            printf 'Setup:   %s\n' "$CFG_SETUP"
+        fi
     fi
     echo "Project: $PROJECT_URL"
     local latest_version
@@ -790,6 +849,8 @@ runtime=$runtime
 # user=
 # env=KEY=VALUE
 # selinux=
+# setup=
+# shell=
 EOF
     echo "Created .airlock (runtime: $runtime)"
 }
@@ -921,6 +982,8 @@ show_help() {
     echo "    user=<uid:gid>       Override container user"
     echo "    env=<KEY=VALUE>      Environment variable (repeatable)"
     echo "    selinux=1|0          Enable or disable SELinux :z volume relabeling"
+    echo "    setup=<command>      Command to run on container startup before opening shell"
+    echo "    shell=<name>         Shell override (e.g. bash, sh; auto-detected if omitted)"
     echo
     echo "Environment variables:"
     echo "  AIRLOCK_SELINUX=1|0      Force enable or disable SELinux :z volume relabeling"

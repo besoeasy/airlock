@@ -182,6 +182,7 @@ runtime=node
 ports=3000 8080
 env=PORT=3000
 env=NODE_ENV=development
+setup=npm install
 ```
 
 Airlock also supports single-token `.airlock` files (similar to `.nvmrc` or `.python-version`):
@@ -200,6 +201,8 @@ python
 | `user` | Container user override | `user=1000:1000` or `user=root` |
 | `env` | Environment variable (repeatable) | `env=DEBUG=express:*` |
 | `selinux` | SELinux `:z` flag override | `selinux=1` or `selinux=0` |
+| `setup` | Lifecycle command to execute on start before shell | `setup=npm install` |
+| `shell` | Shell override (`bash`, `sh`; auto-detected by default) | `shell=bash` |
 
 ## Supported Host Operating Systems
 
