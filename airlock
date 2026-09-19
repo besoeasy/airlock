@@ -620,39 +620,22 @@ menu_distros() {
     done
 }
 
-menu_ai() {
+menu_tools() {
     while true; do
         echo
-        echo "=== AI Coding Agents ==="
-        echo "1) OpenCode"
-        echo "b) Back to categories"
-        echo "q) Quit"
-        echo
-        read -rp "Select AI agent (or 'b' to go back, 'q' to quit): " choice
-
-        case "$choice" in
-            1|opencode) launch opencode; exit 0 ;;
-            b|B|back|BACK) return 0 ;;
-            q|Q|exit|"") exit 0 ;;
-            *) echo "Invalid option." >&2 ;;
-        esac
-    done
-}
-
-menu_security() {
-    while true; do
-        echo
-        echo "=== Security & Auditing ==="
-        echo "1) Kali Linux"
-        echo "2) Trivy (Security Scanner)"
+        echo "=== Tools & Utilities ==="
+        echo "1) OpenCode (AI Coding Agent)"
+        echo "2) Kali Linux (Security & Auditing)"
+        echo "3) Trivy (Security Scanner)"
         echo "b) Back to categories"
         echo "q) Quit"
         echo
         read -rp "Select tool (or 'b' to go back, 'q' to quit): " choice
 
         case "$choice" in
-            1|kali|kalilinux) launch kali; exit 0 ;;
-            2|trivy|semgrep) launch trivy; exit 0 ;;
+            1|opencode) launch opencode; exit 0 ;;
+            2|kali|kalilinux) launch kali; exit 0 ;;
+            3|trivy|semgrep) launch trivy; exit 0 ;;
             b|B|back|BACK) return 0 ;;
             q|Q|exit|"") exit 0 ;;
             *) echo "Invalid option." >&2 ;;
@@ -667,9 +650,8 @@ menu() {
         echo "Select a category:"
         echo "1) Programming Languages  (Bun, C/C++, Deno, Go, Node, PHP, Python, Ruby, Rust, Zig)"
         echo "2) Linux Distributions    (Alpine, Arch, Debian, Fedora, Nix, Ubuntu)"
-        echo "3) AI Coding Agents       (OpenCode)"
-        echo "4) Security & Auditing    (Kali Linux, Trivy)"
-        echo "5) Development Boxes      (Persistent containers)"
+        echo "3) Tools & Utilities      (OpenCode, Kali Linux, Trivy)"
+        echo "4) Development Boxes      (Persistent containers)"
         echo "q) Quit"
         echo
         read -rp "Select category (or 'q' to quit): " choice
@@ -677,9 +659,8 @@ menu() {
         case "$choice" in
             1|lang|languages) menu_languages ;;
             2|distro|distros|linux) menu_distros ;;
-            3|ai|agent|agents) menu_ai ;;
-            4|sec|security) menu_security ;;
-            5|dev|devbox|boxes|development) menu_devboxes ;;
+            3|tool|tools|util|utils|ai|agent|agents|sec|security) menu_tools ;;
+            4|dev|devbox|boxes|development) menu_devboxes ;;
             q|Q|exit|"") exit 0 ;;
             *) echo "Invalid option." >&2 ;;
         esac
@@ -869,8 +850,7 @@ show_help() {
     echo "Available runtimes:"
     echo "  Languages: bun, c, cpp, deno, gcc, go, node, php, python, ruby, rust, zig"
     echo "  Distros:   alpine, arch, debian, fedora, nix, ubuntu"
-    echo "  AI Agents: opencode"
-    echo "  Security:  kali, trivy"
+    echo "  Tools:     kali, opencode, trivy"
     echo
     echo "Development boxes:"
     echo "  airlock enter mybox           Enter a box; asks OS (debian, alpine, fedora, ubuntu, archlinux) if new"
