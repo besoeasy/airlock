@@ -54,7 +54,7 @@ Exit a disposable runtime and it's gone — no SDKs, compilers, or toolchains le
 - **Fork bomb protection** — enforced process limit (`--pids-limit 256`)
 - **Podman required** — the installer sets it up automatically when missing; no Docker, no daemon
 - **SELinux out of the box** — automatic `:z` volume relabeling for Fedora, RHEL, and CentOS
-- **19 runtimes organized into 3 categories** — see [Supported Runtimes](#supported-runtimes) for the full image table
+- **25 runtimes organized into 3 categories** — see [Supported Runtimes](#supported-runtimes) for the full image table
 
 > [!TIP]
 > Airlock requires [**Podman**](https://podman.io/). Podman is rootless and daemonless, so containers run with your user permissions — an extra layer of safety when running untrusted or cloned-repo code. The installer installs it for you when missing; manual commands per distro:
@@ -110,29 +110,47 @@ airlock completion fish > ~/.config/fish/completions/airlock.fish
 
 ## Supported Runtimes
 
-19 disposable runtimes in 3 categories. Run with `airlock <runtime>` (e.g. `airlock python`). Your current directory is mounted at `/workspace`.
+25 disposable runtimes organized into 3 categories. Run with `airlock <runtime>` (e.g. `airlock python`, `airlock gitleaks`). Your current directory is mounted at `/workspace`.
 
-| Category | Runtime | Container Image | Aliases / Notes |
+### Programming Languages (10 runtimes)
+
+| Runtime | Container Image | Aliases / Shell |
+|---|---|---|
+| `bun` | `docker.io/oven/bun:latest` | `bash` |
+| `c` | `docker.io/library/gcc:latest` | `cpp`, `gcc` — `bash` |
+| `deno` | `docker.io/denoland/deno:latest` | `bash` via `--entrypoint /bin/bash` |
+| `go` | `docker.io/library/golang:latest` | `bash` |
+| `node` | `docker.io/library/node:lts` | `bash` |
+| `php` | `docker.io/library/php:cli` | `bash` |
+| `python` | `docker.io/library/python:3` | `bash` |
+| `ruby` | `docker.io/library/ruby:latest` | `bash` |
+| `rust` | `docker.io/library/rust:latest` | `bash` |
+| `zig` | `docker.io/euantorano/zig:latest` | `sh` via `--entrypoint /bin/sh` |
+
+### Linux Distributions (6 runtimes)
+
+| Runtime | Container Image | Aliases / Shell |
+|---|---|---|
+| `alpine` | `docker.io/library/alpine:latest` | `sh` |
+| `archlinux` | `docker.io/library/archlinux:latest` | `arch` — `bash` |
+| `debian` | `docker.io/library/debian:stable` | `bash` — default box OS |
+| `fedora` | `docker.io/library/fedora:latest` | `bash` |
+| `nix` | `docker.io/nixos/nix:latest` | `sh` |
+| `ubuntu` | `docker.io/library/ubuntu:latest` | `bash` |
+
+### Tools & Utilities (9 runtimes)
+
+| Subcategory | Runtime | Container Image | Description / Notes |
 |---|---|---|---|
-| Programming Languages | `bun` | `docker.io/oven/bun:latest` | `bash` |
-| Programming Languages | `c` | `docker.io/library/gcc:latest` | `cpp`, `gcc` — `bash` |
-| Programming Languages | `deno` | `docker.io/denoland/deno:latest` | `bash` via `--entrypoint /bin/bash` |
-| Programming Languages | `go` | `docker.io/library/golang:latest` | `bash` |
-| Programming Languages | `node` | `docker.io/library/node:lts` | `bash` |
-| Programming Languages | `php` | `docker.io/library/php:cli` | `bash` |
-| Programming Languages | `python` | `docker.io/library/python:3` | `bash` |
-| Programming Languages | `ruby` | `docker.io/library/ruby:latest` | `bash` |
-| Programming Languages | `rust` | `docker.io/library/rust:latest` | `bash` |
-| Programming Languages | `zig` | `docker.io/euantorano/zig:latest` | `sh` via `--entrypoint /bin/sh` |
-| Linux Distributions | `alpine` | `docker.io/library/alpine:latest` | `sh` |
-| Linux Distributions | `archlinux` | `docker.io/library/archlinux:latest` | `arch` — `bash` |
-| Linux Distributions | `debian` | `docker.io/library/debian:stable` | `bash` — default box OS |
-| Linux Distributions | `fedora` | `docker.io/library/fedora:latest` | `bash` |
-| Linux Distributions | `nix` | `docker.io/nixos/nix:latest` | `sh` |
-| Linux Distributions | `ubuntu` | `docker.io/library/ubuntu:latest` | `bash` |
-| Tools & Utilities | `kali` | `docker.io/kalilinux/kali-rolling:latest` | `kalilinux` — `bash` |
-| Tools & Utilities | `opencode` | `ghcr.io/anomalyco/opencode` | — |
-| Tools & Utilities | `trivy` | `docker.io/aquasec/trivy:latest` | `semgrep` — runs `fs /workspace` |
+| **Linters & Quality** | `hadolint` | `docker.io/hadolint/hadolint:latest-alpine` | Dockerfile linter — `sh` |
+| **Linters & Quality** | `semgrep` | `docker.io/semgrep/semgrep:latest` | Static analysis & SAST — runs `semgrep scan` |
+| **Linters & Quality** | `shellcheck` | `docker.io/koalaman/shellcheck-alpine:latest` | Shell script static analysis tool — `sh` |
+| **Security & Secrets** | `gitleaks` | `docker.io/zricethezav/gitleaks:latest` | Hardcoded secrets & API key detector — runs `detect` |
+| **Security & Secrets** | `grype` | `docker.io/anchore/grype:latest` | Dependency & container vulnerability scanner |
+| **Security & Secrets** | `kali` | `docker.io/kalilinux/kali-rolling:latest` | `kalilinux` — Penetration testing & auditing (`bash`) |
+| **Security & Secrets** | `nmap` | `docker.io/instrumentisto/nmap:latest` | Network discovery & security scanner — `sh` |
+| **Security & Secrets** | `trivy` | `docker.io/aquasec/trivy:latest` | Vulnerability & misconfiguration scanner (`fs /workspace`) |
+| **AI Coding Agents** | `opencode` | `ghcr.io/anomalyco/opencode` | Autonomous terminal AI coding agent |
 
 ## Development Boxes
 
@@ -217,8 +235,8 @@ Airlock runs anywhere Podman runs. **Podman is required** — the installer inst
 | | Toolbox | Airlock |
 |---|---|---|
 | Model | One persistent pet container | Disposable per-runtime sandboxes + optional persistent devboxes |
-| Startup | `toolbox create` / `enter` with a host-matched image | `airlock python` — 19 runtimes, zero setup |
-| Runtimes | Single OS userland per toolbox | 10 languages, 6 distros, developer tools (AI & security) |
+| Startup | `toolbox create` / `enter` with a host-matched image | `airlock python` — 25 runtimes, zero setup |
+| Runtimes | Single OS userland per toolbox | 10 languages, 6 distros, 9 developer tools |
 | Per-project config | None (set up tools by hand inside) | `.airlock` file: runtime, ports, env, network — plus `airlock init` generator |
 | Workspace | Shares your entire `$HOME` | Mounts only the current dir at `/workspace`; gone on exit |
 | Cleanup | Manual, state accumulates | Exit = gone (`--rm`); devboxes keep state only when you want it |
@@ -230,10 +248,11 @@ Airlock runs anywhere Podman runs. **Podman is required** — the installer inst
 ## Use cases
 
 - **Polyglot development:** Test, compile, and run code in 10 languages without installing SDKs or compilers on your host
+- **Code quality & linting:** Run ShellCheck, Hadolint, and Semgrep to lint scripts, Dockerfiles, and code without local toolchains
+- **Security & secret audits:** Scan repositories for CVEs and leaked credentials with Trivy, Grype, Gitleaks, and Nmap, or test tools in Kali Linux
 - **Run AI coding agents:** Run OpenCode inside a container without giving LLMs unrestricted host execution
 - **Isolate untrusted dependencies:** Run `npm install`, `bundle install`, or `composer install` without trusting unknown scripts
-- **Cross-distro testing:** Test scripts and binary packaging across Alpine, Arch, Debian, Fedora, and Ubuntu
-- **Security audits:** Scan repositories for CVEs and secret leaks with Trivy, or inspect binaries in Kali Linux
+- **Cross-distro testing:** Test scripts and binary packaging across Alpine, Arch, Debian, Fedora, Nix, and Ubuntu
 - **Clean host system:** Keep your personal machine clean of global package managers, dev tools, and toolchains
 
 ## Contributing

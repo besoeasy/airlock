@@ -52,11 +52,11 @@ version_greater() {
 }
 
 # Canonical runtimes + accepted aliases (single source for help, init, completions).
-RUNTIMES_ALL="alpine arch archlinux bun c cpp gcc debian deno fedora go kali kalilinux nix node opencode php python ruby rust semgrep trivy ubuntu zig"
+RUNTIMES_ALL="alpine arch archlinux bun c cpp gcc debian deno fedora gitleaks go grype hadolint kali kalilinux nix node nmap opencode php python ruby rust semgrep shellcheck trivy ubuntu zig"
 
 is_known_runtime() {
     case "$1" in
-        alpine|arch|archlinux|bun|c|cpp|gcc|debian|deno|fedora|go|kali|kalilinux|nix|node|opencode|php|python|ruby|rust|semgrep|trivy|ubuntu|zig)
+        alpine|arch|archlinux|bun|c|cpp|gcc|debian|deno|fedora|gitleaks|go|grype|hadolint|kali|kalilinux|nix|node|nmap|opencode|php|python|ruby|rust|semgrep|shellcheck|trivy|ubuntu|zig)
             return 0 ;;
         *) return 1 ;;
     esac
@@ -289,8 +289,17 @@ launch() {
         fedora)
             image_args=(docker.io/library/fedora:latest bash)
             ;;
+        gitleaks)
+            image_args=(docker.io/zricethezav/gitleaks:latest detect --source /workspace -v)
+            ;;
         go)
             image_args=(docker.io/library/golang:latest bash)
+            ;;
+        grype)
+            image_args=(docker.io/anchore/grype:latest /workspace)
+            ;;
+        hadolint)
+            image_args=(docker.io/hadolint/hadolint:latest-alpine sh)
             ;;
         kali|kalilinux)
             image_args=(docker.io/kalilinux/kali-rolling:latest bash)
@@ -300,6 +309,9 @@ launch() {
             ;;
         node)
             image_args=(docker.io/library/node:lts bash)
+            ;;
+        nmap)
+            image_args=(--entrypoint /bin/sh docker.io/instrumentisto/nmap:latest)
             ;;
         opencode)
             image_args=(ghcr.io/anomalyco/opencode)
@@ -316,7 +328,13 @@ launch() {
         rust)
             image_args=(docker.io/library/rust:latest bash)
             ;;
-        trivy|semgrep)
+        semgrep)
+            image_args=(docker.io/semgrep/semgrep:latest semgrep scan)
+            ;;
+        shellcheck)
+            image_args=(docker.io/koalaman/shellcheck-alpine:latest sh)
+            ;;
+        trivy)
             image_args=(docker.io/aquasec/trivy:latest fs /workspace)
             ;;
         ubuntu)
@@ -624,18 +642,30 @@ menu_tools() {
     while true; do
         echo
         echo "=== Tools & Utilities ==="
-        echo "1) OpenCode (AI Coding Agent)"
-        echo "2) Kali Linux (Security & Auditing)"
-        echo "3) Trivy (Security Scanner)"
+        echo "1) Gitleaks    (Secret & API Key Scanner)"
+        echo "2) Grype       (Vulnerability Scanner)"
+        echo "3) Hadolint    (Dockerfile Linter)"
+        echo "4) Kali Linux  (Security & Auditing)"
+        echo "5) Nmap        (Network Scanner)"
+        echo "6) OpenCode    (AI Coding Agent)"
+        echo "7) Semgrep     (Static Analysis & SAST)"
+        echo "8) ShellCheck  (Shell Script Linter)"
+        echo "9) Trivy       (Security Scanner)"
         echo "b) Back to categories"
         echo "q) Quit"
         echo
         read -rp "Select tool (or 'b' to go back, 'q' to quit): " choice
 
         case "$choice" in
-            1|opencode) launch opencode; exit 0 ;;
-            2|kali|kalilinux) launch kali; exit 0 ;;
-            3|trivy|semgrep) launch trivy; exit 0 ;;
+            1|gitleaks) launch gitleaks; exit 0 ;;
+            2|grype) launch grype; exit 0 ;;
+            3|hadolint) launch hadolint; exit 0 ;;
+            4|kali|kalilinux) launch kali; exit 0 ;;
+            5|nmap) launch nmap; exit 0 ;;
+            6|opencode) launch opencode; exit 0 ;;
+            7|semgrep) launch semgrep; exit 0 ;;
+            8|shellcheck) launch shellcheck; exit 0 ;;
+            9|trivy) launch trivy; exit 0 ;;
             b|B|back|BACK) return 0 ;;
             q|Q|exit|"") exit 0 ;;
             *) echo "Invalid option." >&2 ;;
@@ -650,7 +680,7 @@ menu() {
         echo "Select a category:"
         echo "1) Programming Languages  (Bun, C/C++, Deno, Go, Node, PHP, Python, Ruby, Rust, Zig)"
         echo "2) Linux Distributions    (Alpine, Arch, Debian, Fedora, Nix, Ubuntu)"
-        echo "3) Tools & Utilities      (OpenCode, Kali Linux, Trivy)"
+        echo "3) Tools & Utilities      (Gitleaks, Grype, Hadolint, Kali, Nmap, OpenCode, Semgrep, ShellCheck, Trivy)"
         echo "4) Development Boxes      (Persistent containers)"
         echo "q) Quit"
         echo
@@ -850,7 +880,7 @@ show_help() {
     echo "Available runtimes:"
     echo "  Languages: bun, c, cpp, deno, gcc, go, node, php, python, ruby, rust, zig"
     echo "  Distros:   alpine, arch, debian, fedora, nix, ubuntu"
-    echo "  Tools:     kali, opencode, trivy"
+    echo "  Tools:     gitleaks, grype, hadolint, kali, nmap, opencode, semgrep, shellcheck, trivy"
     echo
     echo "Development boxes:"
     echo "  airlock enter mybox           Enter a box; asks OS (debian, alpine, fedora, ubuntu, archlinux) if new"
@@ -884,7 +914,7 @@ elif [ "${1:-}" = "--help" ] || [ "${1:-}" = "-h" ]; then
     show_help
 elif [ -n "${1:-}" ]; then
     case "$1" in
-        alpine|arch|archlinux|bun|c|cpp|gcc|debian|deno|fedora|go|kali|kalilinux|nix|node|opencode|php|python|ruby|rust|semgrep|trivy|ubuntu|zig)
+        alpine|arch|archlinux|bun|c|cpp|gcc|debian|deno|fedora|gitleaks|go|grype|hadolint|kali|kalilinux|nix|node|nmap|opencode|php|python|ruby|rust|semgrep|shellcheck|trivy|ubuntu|zig)
             launch "$1"
             ;;
         enter)
