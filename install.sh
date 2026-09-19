@@ -69,16 +69,17 @@ if [ -f "${SCRIPT_DIR}/airlock" ] && [ "${SCRIPT_DIR}" != "$TARGET_DIR" ]; then
     cp "${SCRIPT_DIR}/airlock" "$TMP_FILE"
 else
     SOURCE_REF="$(resolve_source_ref)"
-    AIRLOCK_URL="https://raw.githubusercontent.com/${REPO}/${SOURCE_REF}/airlock"
+    AIRLOCK_URL="https://cdn.jsdelivr.net/gh/${REPO}@${SOURCE_REF}/airlock"
+    FALLBACK_URL="https://raw.githubusercontent.com/${REPO}/${SOURCE_REF}/airlock"
     if [ "$SOURCE_REF" = "main" ]; then
         echo "Using development branch (main) — no release found or offline."
     else
         echo "Using latest release: ${SOURCE_REF}"
     fi
     if command -v curl >/dev/null 2>&1; then
-        curl -fsSL "$AIRLOCK_URL" -o "$TMP_FILE"
+        curl -fsSL "$AIRLOCK_URL" -o "$TMP_FILE" 2>/dev/null || curl -fsSL "$FALLBACK_URL" -o "$TMP_FILE"
     elif command -v wget >/dev/null 2>&1; then
-        wget -qO "$TMP_FILE" "$AIRLOCK_URL"
+        wget -qO "$TMP_FILE" "$AIRLOCK_URL" 2>/dev/null || wget -qO "$TMP_FILE" "$FALLBACK_URL"
     else
         echo "Error: curl or wget is required to install Airlock." >&2
         exit 1

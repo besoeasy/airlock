@@ -34,7 +34,7 @@
 ## Quickstart
 
 ```bash
-curl -fsSL https://raw.githubusercontent.com/besoeasy/airlock/main/install.sh | bash
+curl -fsSL https://cdn.jsdelivr.net/gh/besoeasy/airlock@main/install.sh | bash
 
 cd my-project
 airlock python      # disposable Python sandbox, your project mounted at /workspace
@@ -76,7 +76,7 @@ Exit a disposable runtime and it's gone — no SDKs, compilers, or toolchains le
 Handles rootless and system-wide installations automatically, configures `$PATH` across shells (Bash, Zsh, Fish), installs Podman when missing, and updates Airlock when run again. It installs from the latest GitHub release (falling back to `main` when offline):
 
 ```bash
-curl -fsSL https://raw.githubusercontent.com/besoeasy/airlock/main/install.sh | bash
+curl -fsSL https://cdn.jsdelivr.net/gh/besoeasy/airlock@main/install.sh | bash
 ```
 
 ### System-wide with sudo (Alternative)
@@ -84,7 +84,7 @@ curl -fsSL https://raw.githubusercontent.com/besoeasy/airlock/main/install.sh | 
 Installs directly to `/usr/local/bin` for all users and shells (running the installer as root also records the release version, so `airlock --version` stays accurate):
 
 ```bash
-curl -fsSL https://raw.githubusercontent.com/besoeasy/airlock/main/install.sh | sudo bash
+curl -fsSL https://cdn.jsdelivr.net/gh/besoeasy/airlock@main/install.sh | sudo bash
 ```
 
 ## Usage
