@@ -842,7 +842,7 @@ init_cmd() {
 
     cat > ./.airlock <<EOF
 # .airlock — Airlock runtime configuration
-# Docs: $PROJECT_URL#configuration-airlock
+# Docs: $PROJECT_URL/blob/main/docs/configuration.md
 runtime=$runtime
 # ports=3000 8080
 # network=host
