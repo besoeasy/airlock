@@ -4,34 +4,56 @@ set -e
 VERSION="dev"
 PROJECT_URL="https://github.com/besoeasy/airlock"
 GITHUB_REPO="besoeasy/airlock"
-RELEASE_API_URL="https://api.github.com/repos/${GITHUB_REPO}/releases/latest"
+RELEASE_WEB_URL="https://github.com/${GITHUB_REPO}/releases/latest"
 
-# Latest released version via GitHub Releases API (no jq dependency).
-# Prints e.g. "2026.09.16" or "unavailable" (offline, rate-limited, no releases yet).
-# To avoid hammering the API (menu header runs on every render, unauthenticated
-# limit is 60 req/hr), the network check runs on ~20% of invocations; otherwise
-# the local version is returned (i.e. "assume current, no update notice").
+# Latest released version via GitHub releases web redirect + local TTL cache.
+# Bypasses the unauthenticated 60 req/hr GitHub REST API rate limit.
+# Cached locally for 1 hour to ensure instantaneous menu rendering and offline resilience.
 get_latest_version() {
-    local api_json tag
-    if [ $((RANDOM % 100)) -ge 20 ]; then
-        echo "$VERSION"
-        return 0
+    local cache_dir cache_file now cache_time
+    if [ -n "${XDG_CACHE_HOME:-}" ]; then
+        cache_dir="$XDG_CACHE_HOME/airlock"
+    elif [ -n "${HOME:-}" ]; then
+        cache_dir="$HOME/.cache/airlock"
+    else
+        cache_dir="/tmp"
     fi
+    cache_file="${cache_dir}/latest_version"
+
+    now=$(date +%s 2>/dev/null || echo 0)
+
+    # Return cached version if less than 1 hour old (3600 seconds)
+    if [ -f "$cache_file" ]; then
+        cache_time=$(stat -c %Y "$cache_file" 2>/dev/null || stat -f %m "$cache_file" 2>/dev/null || echo 0)
+        if [ "$now" -gt 0 ] && [ "$cache_time" -gt 0 ] && [ $((now - cache_time)) -lt 3600 ]; then
+            cat "$cache_file" 2>/dev/null && return 0
+        fi
+    fi
+
+    # Query via GitHub web redirect (bypasses api.github.com rate limit)
+    local effective_url="" tag=""
     if command -v curl >/dev/null 2>&1; then
-        api_json=$(curl -fsSL --connect-timeout 2 --max-time 5 "$RELEASE_API_URL" 2>/dev/null) || { echo "unavailable"; return 0; }
+        effective_url=$(curl -fsSL --connect-timeout 2 --max-time 4 -o /dev/null -w "%{url_effective}" "$RELEASE_WEB_URL" 2>/dev/null || true)
     elif command -v wget >/dev/null 2>&1; then
-        api_json=$(wget -qO- --connect-timeout=2 --timeout=5 "$RELEASE_API_URL" 2>/dev/null) || { echo "unavailable"; return 0; }
-    else
-        echo "unavailable"
+        effective_url=$(wget -q -S --spider --timeout=4 "$RELEASE_WEB_URL" 2>&1 | grep -i '^[[:space:]]*location:' | tail -n1 | awk '{print $2}')
+    fi
+
+    tag="${effective_url##*/}"
+    tag="${tag#v}"
+
+    if [[ "$tag" =~ ^[0-9]+\.[0-9]+\.[0-9]+ ]]; then
+        mkdir -p "$cache_dir" 2>/dev/null || true
+        echo "$tag" > "$cache_file" 2>/dev/null || true
+        echo "$tag"
         return 0
     fi
-    tag=$(printf '%s' "$api_json" | grep -m1 '"tag_name"' | sed -E 's/.*"tag_name"[[:space:]]*:[[:space:]]*"v?([^"]+)".*/\1/')
-    tag=$(printf '%s' "$tag" | tr -d '[:space:]')
-    if [[ "$tag" =~ ^[0-9]+\.[0-9]+\.[0-9]+ ]]; then
-        echo "$tag"
-    else
-        echo "unavailable"
+
+    # Fall back to existing cached version if offline or query failed
+    if [ -f "$cache_file" ]; then
+        cat "$cache_file" 2>/dev/null && return 0
     fi
+
+    echo "unavailable"
 }
 
 # Returns 0 if version $1 is newer than version $2 (numeric per-component).

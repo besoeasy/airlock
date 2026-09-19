@@ -2,26 +2,23 @@
 set -e
 
 REPO="besoeasy/airlock"
-RELEASE_API_URL="https://api.github.com/repos/${REPO}/releases/latest"
+RELEASE_WEB_URL="https://github.com/${REPO}/releases/latest"
 
 echo "==> Airlock Installer"
 
-# Resolve latest release tag (e.g. 2026.09.16) via GitHub Releases API.
-# Falls back to 'main' when offline, rate-limited, or no releases exist yet.
-# NOTE: only called in the download branch below — local installs skip the API.
+# Resolve latest release tag (e.g. 2026.09.16) via GitHub releases web redirect.
+# Falls back to 'main' when offline or no releases exist yet.
+# NOTE: only called in the download branch below — local installs skip this.
 resolve_source_ref() {
-    local api_json tag
+    local effective_url="" tag=""
     if command -v curl >/dev/null 2>&1; then
-        api_json=$(curl -fsSL --connect-timeout 3 --max-time 8 "$RELEASE_API_URL" 2>/dev/null) || { echo "main"; return 0; }
+        effective_url=$(curl -fsSL --connect-timeout 3 --max-time 8 -o /dev/null -w "%{url_effective}" "$RELEASE_WEB_URL" 2>/dev/null || true)
     elif command -v wget >/dev/null 2>&1; then
-        api_json=$(wget -qO- --connect-timeout=3 --timeout=8 "$RELEASE_API_URL" 2>/dev/null) || { echo "main"; return 0; }
-    else
-        echo "main"
-        return 0
+        effective_url=$(wget -q -S --spider --timeout=8 "$RELEASE_WEB_URL" 2>&1 | grep -i '^[[:space:]]*location:' | tail -n1 | awk '{print $2}')
     fi
-    tag=$(printf '%s' "$api_json" | grep -m1 '"tag_name"' | sed -E 's/.*"tag_name"[[:space:]]*:[[:space:]]*"([^"]+)".*/\1/')
-    tag=$(printf '%s' "$tag" | tr -d '[:space:]')
-    if [ -n "$tag" ]; then
+    tag="${effective_url##*/}"
+    tag="${tag#v}"
+    if [[ "$tag" =~ ^[0-9]+\.[0-9]+\.[0-9]+ ]]; then
         echo "$tag"
     else
         echo "main"
