@@ -33,14 +33,7 @@
 ## Quickstart
 
 ```bash
-# 1. Install or update Airlock
 curl -fsSL https://cdn.jsdelivr.net/gh/besoeasy/airlock@main/install.sh | bash
-
-# 2. Enter any project and launch an instant sandbox
-cd my-project
-airlock python      # disposable Python sandbox, your project mounted at /workspace
-airlock enter mybox # persistent box (asks which OS on first use)
-airlock init        # create a starter .airlock config file
 ```
 
 Exit a disposable runtime and it's gone — no SDKs, compilers, or toolchains left behind on your host.

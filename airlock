@@ -6,6 +6,23 @@ PROJECT_URL="https://github.com/besoeasy/airlock"
 GITHUB_REPO="besoeasy/airlock"
 RELEASE_WEB_URL="https://github.com/${GITHUB_REPO}/releases/latest"
 
+# Modern terminal styling (dependency-free, respects NO_COLOR + pipes).
+# Colors only apply to Airlock's own UI, never to container output.
+if [[ -t 1 ]] && [[ -z "${NO_COLOR:-}" ]] && [[ "${TERM:-}" != "dumb" ]]; then
+    C_BOLD=$'\e[1m'; C_DIM=$'\e[2m'; C_RED=$'\e[31m'; C_GREEN=$'\e[32m'
+    C_YELLOW=$'\e[33m'; C_BLUE=$'\e[34m'; C_MAGENTA=$'\e[35m'; C_CYAN=$'\e[36m'
+    C_RESET=$'\e[0m'
+else
+    C_BOLD=""; C_DIM=""; C_RED=""; C_GREEN=""
+    C_YELLOW=""; C_BLUE=""; C_MAGENTA=""; C_CYAN=""; C_RESET=""
+fi
+
+info() { printf "%s%s%s\n" "$C_GREEN" "$*" "$C_RESET"; }
+warn() { printf "%s%s%s\n" "$C_YELLOW" "$*" "$C_RESET" >&2; }
+error() { printf "%s%s%s\n" "$C_RED" "$*" "$C_RESET" >&2; }
+dim() { printf "%s%s%s\n" "$C_DIM" "$*" "$C_RESET"; }
+hdr() { printf "\n%s%s%s%s\n" "$C_BOLD$C_CYAN" "$*" "$C_RESET"; }
+
 # Latest released version via GitHub releases web redirect + local TTL cache.
 # Bypasses the unauthenticated 60 req/hr GitHub REST API rate limit.
 # Cached locally for 1 hour to ensure instantaneous menu rendering and offline resilience.
@@ -88,27 +105,27 @@ show_version() {
     local latest_version
     latest_version=$(get_latest_version)
 
-    echo "Airlock version: $VERSION"
-    echo "Latest release: $latest_version"
+    printf "%sAirlock%s %s%s%s\n" "$C_BOLD$C_CYAN" "$C_RESET" "$C_BOLD" "$VERSION" "$C_RESET"
+    printf "%sLatest release:%s %s\n" "$C_DIM" "$C_RESET" "$latest_version"
     # Only release-stamped copies (installed via install.sh) get an update
     # verdict; dev checkouts and manual copies just report what they are.
     if [[ "$VERSION" =~ ^v?[0-9]+\.[0-9]+\.[0-9]+ ]] && [ "$latest_version" != "unavailable" ] && version_greater "$latest_version" "$VERSION"; then
-        echo "Update available: $latest_version (re-run install.sh to update)"
+        printf "%sUpdate available:%s %s %s(re-run install.sh to update)%s\n" "$C_YELLOW$C_BOLD" "$C_RESET" "$latest_version" "$C_DIM" "$C_RESET"
     fi
     if is_selinux_enabled; then
-        echo "SELinux: enabled (:z flag active)"
+        printf "%sSELinux:%s enabled (:z flag active)\n" "$C_DIM" "$C_RESET"
     fi
     if [ -n "${AIRLOCK_USER:-}" ]; then
-        echo "User mapping: $AIRLOCK_USER"
+        printf "%sUser mapping:%s %s\n" "$C_DIM" "$C_RESET" "$AIRLOCK_USER"
     fi
     if [ "$CFG_FOUND" = true ]; then
         if [ -n "$CFG_RUNTIME" ]; then
-            echo "Config: .airlock (runtime: $CFG_RUNTIME)"
+            printf "%sConfig:%s .airlock (runtime: %s%s%s)\n" "$C_DIM" "$C_RESET" "$C_GREEN" "$CFG_RUNTIME" "$C_RESET"
         else
-            echo "Config: .airlock"
+            printf "%sConfig:%s .airlock\n" "$C_DIM" "$C_RESET"
         fi
         if [ -n "$CFG_SETUP" ]; then
-            echo "Setup:  $CFG_SETUP"
+            printf "%sSetup:%s  %s\n" "$C_DIM" "$C_RESET" "$CFG_SETUP"
         fi
     fi
 }
@@ -245,15 +262,15 @@ get_network_args() {
     if [ "$CFG_FOUND" = true ]; then
         if [ -n "$CFG_PORTS" ]; then
             if [ -n "$CFG_NETWORK" ]; then
-                echo "Warning: .airlock sets both ports and network; ports take precedence (network ignored)" >&2
+                warn "⚠ .airlock sets both ports and network; ports take precedence (network ignored)"
             fi
             local p
             for p in $CFG_PORTS; do
-                is_valid_port "$p" || { echo "Invalid .airlock ports entry: '$p' (expected a number 1-65535)" >&2; exit 1; }
+                is_valid_port "$p" || { error "Invalid .airlock ports entry: '$p' (expected a number 1-65535)"; exit 1; }
                 NET_ARGS+=(-p "$p:$p")
             done
         elif [ -n "$CFG_NETWORK" ]; then
-            [[ "$CFG_NETWORK" =~ ^[A-Za-z0-9_.-]+$ ]] || { echo "Invalid .airlock network entry: '$CFG_NETWORK' (expected a simple name like host, bridge, none)" >&2; exit 1; }
+            [[ "$CFG_NETWORK" =~ ^[A-Za-z0-9_.-]+$ ]] || { error "Invalid .airlock network entry: '$CFG_NETWORK' (expected a simple name like host, bridge, none)"; exit 1; }
             NET_ARGS=(--network "$CFG_NETWORK")
         else
             NET_ARGS=(--network host)
@@ -263,7 +280,7 @@ get_network_args() {
 
     local ports
     if ! read -rp "Ports to open (space-separated, e.g. 3000 8080) or Enter for --network host: " ports; then
-        echo "(no input detected — using --network host)" >&2
+        dim "(no input detected — using --network host)" >&2
         ports=""
     fi
 
@@ -272,7 +289,7 @@ get_network_args() {
     else
         local p
         for p in $ports; do
-            is_valid_port "$p" || { echo "Invalid port: '$p' (expected a number 1-65535)" >&2; exit 1; }
+            is_valid_port "$p" || { error "Invalid port: '$p' (expected a number 1-65535)"; exit 1; }
             NET_ARGS+=(-p "$p:$p")
         done
     fi
@@ -384,8 +401,8 @@ launch() {
             default_shell="sh"
             ;;
         *)
-            echo "Unknown runtime: $name" >&2
-            echo "Runtimes: $RUNTIMES_ALL" >&2
+            error "Unknown runtime: $name"
+            error "Runtimes: $RUNTIMES_ALL"
             exit 1
             ;;
     esac
@@ -435,6 +452,7 @@ launch() {
         done
     fi
 
+    printf "%s▸ Launching '%s' sandbox...%s %s(/workspace ↔ %s)%s\n" "$C_DIM" "$name" "$C_RESET" "$C_DIM" "$PWD" "$C_RESET" >&2
     $rt run -it --rm --pids-limit 256 "${NET_ARGS[@]}" \
         "${user_args[@]}" \
         "${env_args[@]}" \
@@ -482,14 +500,14 @@ devbox_shell() {
 # Defaults to debian on empty/invalid input or when stdin is not interactive.
 devbox_prompt_distro() {
     local distro
-    echo "Choose an OS:" >&2
-    echo "  1) Debian (default)" >&2
-    echo "  2) Alpine" >&2
-    echo "  3) Fedora" >&2
-    echo "  4) Ubuntu" >&2
-    echo "  5) Arch Linux" >&2
-    if ! read -rp "Distro [debian]: " distro; then
-        echo "(no input detected — using debian)" >&2
+    printf "%sChoose an OS:%s\n" "$C_BOLD" "$C_RESET" >&2
+    printf "  %s1)%s Debian (default)\n" "$C_CYAN$C_BOLD" "$C_RESET" >&2
+    printf "  %s2)%s Alpine\n" "$C_CYAN$C_BOLD" "$C_RESET" >&2
+    printf "  %s3)%s Fedora\n" "$C_CYAN$C_BOLD" "$C_RESET" >&2
+    printf "  %s4)%s Ubuntu\n" "$C_CYAN$C_BOLD" "$C_RESET" >&2
+    printf "  %s5)%s Arch Linux\n" "$C_CYAN$C_BOLD" "$C_RESET" >&2
+    if ! read -rp "Distro [debian] › " distro; then
+        dim "(no input detected — using debian)" >&2
         echo "debian"
         return 0
     fi
@@ -499,55 +517,56 @@ devbox_prompt_distro() {
         3|fed|fedora) echo "fedora" ;;
         4|ub|ubuntu) echo "ubuntu" ;;
         5|arch|archlinux) echo "archlinux" ;;
-        *) echo "Invalid distro, using debian." >&2; echo "debian" ;;
+        *) warn "Invalid distro, using debian."; echo "debian" ;;
     esac
 }
 
 devbox_create() {
     local name="$1" distro="${2:-debian}" image shell
     if [ -z "$name" ]; then
-        echo "Error: box name required (e.g. airlock enter mysandbox)" >&2
+        error "Error: box name required (e.g. airlock enter mysandbox)"
         exit 1
     fi
     case "$distro" in
         alpine|arch|archlinux|debian|fedora|ubuntu) ;;
         *)
-            echo "Error: invalid distro: '$distro' (expected alpine, archlinux, debian, fedora, or ubuntu)" >&2
+            error "Error: invalid distro: '$distro' (expected alpine, archlinux, debian, fedora, or ubuntu)"
             exit 1
             ;;
     esac
     if ! devbox_validate_name "$name"; then
-        echo "Error: invalid box name: '$name'" >&2
-        echo "Names may contain letters, digits, '_', '.', '-' (no spaces)." >&2
+        error "Error: invalid box name: '$name'"
+        error "Names may contain letters, digits, '_', '.', '-' (no spaces)."
         exit 1
     fi
     rt=$(detect_runtime)
     devbox_basename "$name"
     if devbox_exists; then
-        echo "Devbox '$name' already exists ($B_NAME)" >&2
+        error "Devbox '$name' already exists ($B_NAME)"
         exit 1
     fi
     image=$(devbox_image_for_distro "$distro")
     shell=$(devbox_shell_for_image "$image")
+    printf "%s⠋ Creating devbox '%s' [%s]...%s\n" "$C_DIM" "$name" "$distro" "$C_RESET"
     $rt run -d --name "$B_NAME" --network host \
         "$image" "$shell" -c 'sleep infinity'
-    echo "Created devbox '$name' ($B_NAME) [$distro]"
+    info "✓ Created devbox '$name' ($B_NAME) [$distro]"
 }
 
 devbox_enter() {
     local name="$1"
     if [ -z "$name" ]; then
-        echo "Error: box name required (e.g. airlock enter mysandbox)" >&2
+        error "Error: box name required (e.g. airlock enter mysandbox)"
         exit 1
     fi
     if ! devbox_validate_name "$name"; then
-        echo "Error: invalid box name: '$name'" >&2
+        error "Error: invalid box name: '$name'"
         exit 1
     fi
     rt=$(detect_runtime)
     devbox_basename "$name"
     if ! devbox_exists; then
-        echo "Box '$name' does not exist yet." >&2
+        dim "Box '$name' does not exist yet." >&2
         devbox_create "$name" "$(devbox_prompt_distro)"
     elif [ "$($rt inspect -f '{{.State.Running}}' "$B_NAME")" != "true" ]; then
         $rt start "$B_NAME"
@@ -575,50 +594,48 @@ devbox_show_existing() {
 devbox_delete() {
     local name="$1"
     if [ -z "$name" ]; then
-        echo "Error: box name required (e.g. airlock delete mysandbox)" >&2
+        error "Error: box name required (e.g. airlock delete mysandbox)"
         exit 1
     fi
     if ! devbox_validate_name "$name"; then
-        echo "Error: invalid box name: '$name'" >&2
+        error "Error: invalid box name: '$name'"
         exit 1
     fi
     rt=$(detect_runtime)
     devbox_basename "$name"
     if ! devbox_exists; then
-        echo "Devbox '$name' not found ($B_NAME)" >&2
+        error "Devbox '$name' not found ($B_NAME)"
         exit 1
     fi
     $rt rm -f "$B_NAME"
-    echo "Removed devbox '$name' ($B_NAME)"
+    info "✓ Removed devbox '$name' ($B_NAME)"
 }
 
 menu_devboxes() {
     while true; do
+        hdr "◆ Development Boxes"
+        printf "  %s1)%s Enter a devbox  %s(creates it if new)%s\n" "$C_CYAN$C_BOLD" "$C_RESET" "$C_DIM" "$C_RESET"
+        printf "  %s2)%s List devboxes\n" "$C_CYAN$C_BOLD" "$C_RESET"
+        printf "  %s3)%s Delete a devbox\n" "$C_CYAN$C_BOLD" "$C_RESET"
+        printf "  %sb)%s Back   %sq)%s Quit\n" "$C_DIM" "$C_RESET" "$C_DIM" "$C_RESET"
         echo
-        echo "=== Development Boxes ==="
-        echo "1) Enter a devbox (creates it if new)"
-        echo "2) List devboxes"
-        echo "3) Delete a devbox"
-        echo "b) Back to main menu"
-        echo "q) Quit"
-        echo
-        read -rp "Select option (or 'b' to go back, 'q' to quit): " choice
+        read -rp "Select option › " choice
 
         case "$choice" in
             1|e|enter)
                 devbox_show_existing
-                read -rp "Devbox name: " name
+                read -rp "Devbox name › " name
                 devbox_enter "$name"
                 ;;
             2|l|list|ls) devbox_list ;;
             3|d|delete|rm|remove)
                 devbox_show_existing
-                read -rp "Devbox name: " name
+                read -rp "Devbox name › " name
                 devbox_delete "$name"
                 ;;
             b|B|back|BACK) return 0 ;;
             q|Q|exit|"") exit 0 ;;
-            *) echo "Invalid option." >&2 ;;
+            *) error "✘ Invalid option." ;;
         esac
         echo
     done
@@ -627,50 +644,43 @@ menu_devboxes() {
 show_header() {
     local rt
     rt=$(detect_runtime)
-    echo "Airlock $VERSION"
-    printf 'Runtime: %s\n' "$rt"
+    printf "\n%s  Airlock %s%s %s%s\n" "$C_BOLD$C_CYAN" "$VERSION" "$C_RESET" "$C_DIM" "· disposable dev sandboxes$C_RESET"
+    printf "%s─%s\n" "$C_DIM" "$C_RESET"
+    printf "  %sRuntime:%s %s\n" "$C_DIM" "$C_RESET" "$rt"
     if is_selinux_enabled; then
-        echo "SELinux: enabled (:z flag active)"
+        printf "  %sSELinux:%s %senabled%s %s(:z active)%s\n" "$C_DIM" "$C_RESET" "$C_GREEN" "$C_RESET" "$C_DIM" "$C_RESET"
     fi
     if [ -n "${AIRLOCK_USER:-}" ]; then
-        echo "User:    $AIRLOCK_USER"
+        printf "  %sUser:%s    %s\n" "$C_DIM" "$C_RESET" "$AIRLOCK_USER"
     fi
     if [ "$CFG_FOUND" = true ]; then
         if [ -n "$CFG_RUNTIME" ]; then
-            printf 'Config:  .airlock (runtime: %s)\n' "$CFG_RUNTIME"
+            printf "  %sConfig:%s  .airlock (runtime: %s%s%s)\n" "$C_DIM" "$C_RESET" "$C_GREEN$C_BOLD" "$CFG_RUNTIME" "$C_RESET"
         else
-            echo "Config:  .airlock"
+            printf "  %sConfig:%s  .airlock\n" "$C_DIM" "$C_RESET"
         fi
         if [ -n "$CFG_SETUP" ]; then
-            printf 'Setup:   %s\n' "$CFG_SETUP"
+            printf "  %sSetup:%s   %s\n" "$C_DIM" "$C_RESET" "$CFG_SETUP"
         fi
     fi
-    echo "Project: $PROJECT_URL"
+    printf "  %sProject:%s %s\n" "$C_DIM" "$C_RESET" "$PROJECT_URL"
     local latest_version
     latest_version=$(get_latest_version)
     if [ "$latest_version" != "unavailable" ] && version_greater "$latest_version" "$VERSION"; then
-        printf 'Latest:  %s (update available: re-run install.sh)\n' "$latest_version"
+        printf "  %sLatest:%s  %s %s(update: re-run install.sh)%s\n" "$C_DIM" "$C_RESET" "$latest_version" "$C_YELLOW" "$C_RESET"
     fi
 }
 
 menu_languages() {
     while true; do
+        hdr "◆ Programming Languages"
+        printf "  %s1)%s Bun            %s2)%s C / C++ (GCC)   %s3)%s Deno\n" "$C_CYAN$C_BOLD" "$C_RESET" "$C_CYAN$C_BOLD" "$C_RESET" "$C_CYAN$C_BOLD" "$C_RESET"
+        printf "  %s4)%s Go             %s5)%s Node.js          %s6)%s PHP\n" "$C_CYAN$C_BOLD" "$C_RESET" "$C_CYAN$C_BOLD" "$C_RESET" "$C_CYAN$C_BOLD" "$C_RESET"
+        printf "  %s7)%s Python         %s8)%s Ruby             %s9)%s Rust\n" "$C_CYAN$C_BOLD" "$C_RESET" "$C_CYAN$C_BOLD" "$C_RESET" "$C_CYAN$C_BOLD" "$C_RESET"
+        printf "  %s10)%s Zig\n" "$C_CYAN$C_BOLD" "$C_RESET"
+        printf "  %sb)%s Back   %sq)%s Quit\n" "$C_DIM" "$C_RESET" "$C_DIM" "$C_RESET"
         echo
-        echo "=== Programming Languages ==="
-        echo "1) Bun"
-        echo "2) C / C++ (GCC)"
-        echo "3) Deno"
-        echo "4) Go"
-        echo "5) Node.js"
-        echo "6) PHP"
-        echo "7) Python"
-        echo "8) Ruby"
-        echo "9) Rust"
-        echo "10) Zig"
-        echo "b) Back to categories"
-        echo "q) Quit"
-        echo
-        read -rp "Select language (or 'b' to go back, 'q' to quit): " choice
+        read -rp "Select language › " choice
 
         case "$choice" in
             1|bun) launch bun; exit 0 ;;
@@ -685,25 +695,19 @@ menu_languages() {
             10|zig) launch zig; exit 0 ;;
             b|B|back|BACK) return 0 ;;
             q|Q|exit|"") exit 0 ;;
-            *) echo "Invalid option." >&2 ;;
+            *) error "✘ Invalid option." ;;
         esac
     done
 }
 
 menu_distros() {
     while true; do
+        hdr "◆ Linux Distributions"
+        printf "  %s1)%s Alpine      %s2)%s Arch Linux   %s3)%s Debian\n" "$C_CYAN$C_BOLD" "$C_RESET" "$C_CYAN$C_BOLD" "$C_RESET" "$C_CYAN$C_BOLD" "$C_RESET"
+        printf "  %s4)%s Fedora      %s5)%s Nix          %s6)%s Ubuntu\n" "$C_CYAN$C_BOLD" "$C_RESET" "$C_CYAN$C_BOLD" "$C_RESET" "$C_CYAN$C_BOLD" "$C_RESET"
+        printf "  %sb)%s Back   %sq)%s Quit\n" "$C_DIM" "$C_RESET" "$C_DIM" "$C_RESET"
         echo
-        echo "=== Linux Distributions ==="
-        echo "1) Alpine"
-        echo "2) Arch Linux"
-        echo "3) Debian"
-        echo "4) Fedora"
-        echo "5) Nix"
-        echo "6) Ubuntu"
-        echo "b) Back to categories"
-        echo "q) Quit"
-        echo
-        read -rp "Select distribution (or 'b' to go back, 'q' to quit): " choice
+        read -rp "Select distribution › " choice
 
         case "$choice" in
             1|alpine) launch alpine; exit 0 ;;
@@ -714,28 +718,26 @@ menu_distros() {
             6|ubuntu) launch ubuntu; exit 0 ;;
             b|B|back|BACK) return 0 ;;
             q|Q|exit|"") exit 0 ;;
-            *) echo "Invalid option." >&2 ;;
+            *) error "✘ Invalid option." ;;
         esac
     done
 }
 
 menu_tools() {
     while true; do
+        hdr "◆ Tools & Utilities"
+        printf "  %s1)%s Gitleaks    %sSecret & API Key Scanner%s\n" "$C_CYAN$C_BOLD" "$C_RESET" "$C_DIM" "$C_RESET"
+        printf "  %s2)%s Grype       %sVulnerability Scanner%s\n" "$C_CYAN$C_BOLD" "$C_RESET" "$C_DIM" "$C_RESET"
+        printf "  %s3)%s Hadolint    %sDockerfile Linter%s\n" "$C_CYAN$C_BOLD" "$C_RESET" "$C_DIM" "$C_RESET"
+        printf "  %s4)%s Kali Linux  %sSecurity & Auditing%s\n" "$C_CYAN$C_BOLD" "$C_RESET" "$C_DIM" "$C_RESET"
+        printf "  %s5)%s Nmap        %sNetwork Scanner%s\n" "$C_CYAN$C_BOLD" "$C_RESET" "$C_DIM" "$C_RESET"
+        printf "  %s6)%s OpenCode    %sAI Coding Agent%s\n" "$C_CYAN$C_BOLD" "$C_RESET" "$C_DIM" "$C_RESET"
+        printf "  %s7)%s Semgrep     %sStatic Analysis & SAST%s\n" "$C_CYAN$C_BOLD" "$C_RESET" "$C_DIM" "$C_RESET"
+        printf "  %s8)%s ShellCheck  %sShell Script Linter%s\n" "$C_CYAN$C_BOLD" "$C_RESET" "$C_DIM" "$C_RESET"
+        printf "  %s9)%s Trivy       %sSecurity Scanner%s\n" "$C_CYAN$C_BOLD" "$C_RESET" "$C_DIM" "$C_RESET"
+        printf "  %sb)%s Back   %sq)%s Quit\n" "$C_DIM" "$C_RESET" "$C_DIM" "$C_RESET"
         echo
-        echo "=== Tools & Utilities ==="
-        echo "1) Gitleaks    (Secret & API Key Scanner)"
-        echo "2) Grype       (Vulnerability Scanner)"
-        echo "3) Hadolint    (Dockerfile Linter)"
-        echo "4) Kali Linux  (Security & Auditing)"
-        echo "5) Nmap        (Network Scanner)"
-        echo "6) OpenCode    (AI Coding Agent)"
-        echo "7) Semgrep     (Static Analysis & SAST)"
-        echo "8) ShellCheck  (Shell Script Linter)"
-        echo "9) Trivy       (Security Scanner)"
-        echo "b) Back to categories"
-        echo "q) Quit"
-        echo
-        read -rp "Select tool (or 'b' to go back, 'q' to quit): " choice
+        read -rp "Select tool › " choice
 
         case "$choice" in
             1|gitleaks) launch gitleaks; exit 0 ;;
@@ -749,8 +751,93 @@ menu_tools() {
             9|trivy) launch trivy; exit 0 ;;
             b|B|back|BACK) return 0 ;;
             q|Q|exit|"") exit 0 ;;
-            *) echo "Invalid option." >&2 ;;
+            *) error "✘ Invalid option." ;;
         esac
+    done
+}
+
+menu_cleanup() {
+    local rt
+    rt=$(detect_runtime)
+    while true; do
+        local reclaim vol_count
+        reclaim=$($rt system df 2>/dev/null | awk '/^Images/{print $(NF-1)" "$(NF)}')
+        vol_count=$($rt volume ls --filter dangling=true -q 2>/dev/null | wc -l | tr -d ' ')
+        [ -n "$reclaim" ] || reclaim="unknown"
+        [ -n "$vol_count" ] || vol_count="?"
+
+        hdr "◆ Cleanup — ${reclaim} reclaimable, ${vol_count} volumes"
+        printf "%sType a number to delete it, or pick a safe bulk clean.%s\n" "$C_DIM" "$C_RESET"
+        echo
+
+        local -a IMGS=()
+        # Only images with zero containers (from `system df -v`, which also
+        # sees external/stopped containers that `ps -a` misses). Anything
+        # in use is hidden so deletion never fails with "image is in use".
+        local unused_ids
+        unused_ids=$($rt system df -v 2>/dev/null | awk '$NF==0 && $3 ~ /^[0-9a-f]+$/ {print $3}')
+        if [ -n "$unused_ids" ]; then
+            while IFS= read -r line; do
+                [ -n "$line" ] || continue
+                lid="${line##*|}"
+                if grep -qxF "$lid" <<< "$unused_ids"; then
+                    IMGS+=("$line")
+                fi
+                [ "${#IMGS[@]}" -ge 5 ] && break
+            done < <($rt images --sort=size --format "{{.Repository}}:{{.Tag}}|{{.Size}}|{{.ID}}" 2>/dev/null | tac)
+        fi
+        if [ "${#IMGS[@]}" -eq 0 ]; then
+            dim "Nothing unused — every image is in use by a container."
+        else
+            local i=0 entry name size id short display
+            for entry in "${IMGS[@]}"; do
+                i=$((i + 1))
+                name="${entry%%|*}"; entry="${entry#*|}"
+                size="${entry%%|*}"; id="${entry##*|}"
+                short="${id:0:12}"
+                if [ "$name" = "<none>:<none>" ]; then
+                    display="<unused layer>"
+                else
+                    display="$name"
+                fi
+                printf "  %s%s)%s %s%-9s%s %s %s(%s)%s\n" "$C_CYAN$C_BOLD" "$i" "$C_RESET" "$C_BOLD" "$size" "$C_RESET" "$display" "$C_DIM" "$short" "$C_RESET"
+            done
+        fi
+        echo
+        printf "  %sa)%s Clean all unused images  %s(safe, recommended)%s\n" "$C_GREEN$C_BOLD" "$C_RESET" "$C_DIM" "$C_RESET"
+        printf "  %sv)%s Clean unused volumes     %s(deletes data)%s\n" "$C_YELLOW$C_BOLD" "$C_RESET" "$C_DIM" "$C_RESET"
+        printf "  %sb)%s Back   %sq)%s Quit\n" "$C_DIM" "$C_RESET" "$C_DIM" "$C_RESET"
+        echo
+        local choice confirm target_id target_name
+        read -rp "Delete # or action › " choice
+        case "$choice" in
+            1|2|3|4|5)
+                if [ "$choice" -gt "${#IMGS[@]}" ]; then error "✘ No such entry."; continue; fi
+                entry="${IMGS[$((choice - 1))]}"
+                target_name="${entry%%|*}"; entry="${entry#*|}"
+                size="${entry%%|*}"; target_id="${entry##*|}"
+                [ "$target_name" = "<none>:<none>" ] && target_name="<unused layer> $size"
+                read -rp "Remove $target_name ($size)? [y/N] › " confirm
+                case "$confirm" in
+                    y|Y|yes|YES) $rt rmi "$target_id" && info "✓ Freed $size" || error "✘ Could not remove (in use?)" ;;
+                    *) dim "Cancelled." ;;
+                esac
+                ;;
+            a|A|clean|all|prune)
+                $rt image prune -f && info "✓ Cleaned unused images" || error "✘ Prune failed"
+                ;;
+            v|V|vol|volume|volumes)
+                read -rp "Delete all unused volumes? Data will be lost. [y/N] › " confirm
+                case "$confirm" in
+                    y|Y|yes|YES) $rt volume prune -f && info "✓ Cleaned volumes" || error "✘ Prune failed" ;;
+                    *) dim "Cancelled." ;;
+                esac
+                ;;
+            b|B|back|BACK) return 0 ;;
+            q|Q|exit|"") exit 0 ;;
+            *) error "✘ Enter 1-${#IMGS[@]}, a, v, b or q." ;;
+        esac
+        echo
     done
 }
 
@@ -758,22 +845,28 @@ menu() {
     while true; do
         show_header
         echo
-        echo "Select a category:"
-        echo "1) Programming Languages  (Bun, C/C++, Deno, Go, Node, PHP, Python, Ruby, Rust, Zig)"
-        echo "2) Linux Distributions    (Alpine, Arch, Debian, Fedora, Nix, Ubuntu)"
-        echo "3) Tools & Utilities      (Gitleaks, Grype, Hadolint, Kali, Nmap, OpenCode, Semgrep, ShellCheck, Trivy)"
-        echo "4) Development Boxes      (Persistent containers)"
-        echo "q) Quit"
+        printf "%sDisposable sandboxes %s(destroyed on exit)%s:%s\n" "$C_BOLD" "$C_DIM" "$C_RESET" "$C_RESET"
+        printf "  %s1)%s ⚡ Programming Languages  %sBun, C/C++, Deno, Go, Node, PHP, Python, Ruby, Rust, Zig%s\n" "$C_CYAN$C_BOLD" "$C_RESET" "$C_DIM" "$C_RESET"
+        printf "  %s2)%s 🐧 Linux Distributions    %sAlpine, Arch, Debian, Fedora, Nix, Ubuntu%s\n" "$C_CYAN$C_BOLD" "$C_RESET" "$C_DIM" "$C_RESET"
+        printf "  %s3)%s 🛠  Tools & Utilities      %sScanners, Linters, Kali, OpenCode%s\n" "$C_CYAN$C_BOLD" "$C_RESET" "$C_DIM" "$C_RESET"
         echo
-        read -rp "Select category (or 'q' to quit): " choice
+        printf "%sPersistent %s(survives exit)%s:%s\n" "$C_BOLD$C_YELLOW" "$C_DIM" "$C_RESET" "$C_RESET"
+        printf "  %s4)%s 📦 Development Boxes      %sLong-lived containers%s\n" "$C_YELLOW$C_BOLD" "$C_RESET" "$C_DIM" "$C_RESET"
+        echo
+        printf "%sActions:%s\n" "$C_BOLD" "$C_RESET"
+        printf "  %sc)%s Cleanup disk space   %sbiggest images first%s\n" "$C_CYAN$C_BOLD" "$C_RESET" "$C_DIM" "$C_RESET"
+        printf "  %sq)%s Quit\n" "$C_DIM" "$C_RESET"
+        echo
+        read -rp "Select › " choice
 
         case "$choice" in
             1|lang|languages) menu_languages ;;
             2|distro|distros|linux) menu_distros ;;
             3|tool|tools|util|utils|ai|agent|agents|sec|security) menu_tools ;;
-            4|dev|devbox|boxes|development) menu_devboxes ;;
+            4|d|D|dev|devbox|boxes|development) menu_devboxes ;;
+            c|C|clean|cleanup|prune) menu_cleanup ;;
             q|Q|exit|"") exit 0 ;;
-            *) echo "Invalid option." >&2 ;;
+            *) error "✘ Invalid option." ;;
         esac
         echo
     done
@@ -947,30 +1040,30 @@ completion_cmd() {
 }
 
 show_help() {
-    echo "Usage: airlock [options] [runtime]"
+    printf "%sUsage:%s airlock [options] [runtime]\n" "$C_BOLD" "$C_RESET"
     echo
-    echo "Options:"
+    printf "%sOptions:%s\n" "$C_BOLD$C_CYAN" "$C_RESET"
     echo "  -h, --help     Show this help message"
     echo "  -v, --version  Show version"
     echo
-    echo "Commands:"
-    echo "  init [runtime]            Create a starter .airlock file (auto-detects when omitted)"
-    echo "  completion <shell>        Print completion script (bash, zsh, fish)"
-    echo "  enter <name>              Enter a persistent box (asks OS when creating a new one)"
-    echo "  list                      List all persistent boxes"
-    echo "  delete <name>             Delete a persistent box"
+    printf "%sCommands:%s\n" "$C_BOLD$C_CYAN" "$C_RESET"
+    printf "  %sinit%s [runtime]       Create a starter .airlock file (auto-detects when omitted)\n" "$C_GREEN" "$C_RESET"
+    printf "  %scompletion%s <shell>   Print completion script (bash, zsh, fish)\n" "$C_GREEN" "$C_RESET"
+    printf "  %senter%s <name>         Enter a persistent box (asks OS when creating a new one)\n" "$C_GREEN" "$C_RESET"
+    echo "  list                 List all persistent boxes"
+    echo "  delete <name>        Delete a persistent box"
     echo
-    echo "Available runtimes:"
+    printf "%sAvailable runtimes:%s\n" "$C_BOLD$C_CYAN" "$C_RESET"
     echo "  Languages: bun, c, cpp, deno, gcc, go, node, php, python, ruby, rust, zig"
     echo "  Distros:   alpine, arch, debian, fedora, nix, ubuntu"
     echo "  Tools:     gitleaks, grype, hadolint, kali, nmap, opencode, semgrep, shellcheck, trivy"
     echo
-    echo "Development boxes:"
+    printf "%sDevelopment boxes:%s\n" "$C_BOLD$C_CYAN" "$C_RESET"
     echo "  airlock enter mybox           Enter a box; asks OS (debian, alpine, fedora, ubuntu, archlinux) if new"
     echo "  airlock list                  List all boxes"
     echo "  airlock delete mybox          Delete a box and its state"
     echo
-    echo "Configuration file (.airlock):"
+    printf "%sConfiguration file (.airlock):%s\n" "$C_BOLD$C_CYAN" "$C_RESET"
     echo "  When a .airlock file is present in the current directory, Airlock"
     echo "  automatically launches the container with your configuration"
     echo "  and skips interactive questions."
@@ -985,9 +1078,10 @@ show_help() {
     echo "    setup=<command>      Command to run on container startup before opening shell"
     echo "    shell=<name>         Shell override (e.g. bash, sh; auto-detected if omitted)"
     echo
-    echo "Environment variables:"
+    printf "%sEnvironment variables:%s\n" "$C_BOLD$C_CYAN" "$C_RESET"
     echo "  AIRLOCK_SELINUX=1|0      Force enable or disable SELinux :z volume relabeling"
     echo "  AIRLOCK_USER=<uid:gid>   Override container user (default: container default)"
+    echo "  NO_COLOR=1               Disable colors"
 }
 
 ensure_path
@@ -1004,20 +1098,20 @@ elif [ -n "${1:-}" ]; then
             ;;
         enter)
             if [ -n "${3:-}" ]; then
-                echo "Error: too many arguments (expected 'airlock enter <name>')" >&2
+                error "Error: too many arguments (expected 'airlock enter <name>')"
                 exit 1
             fi
             devbox_enter "${2:-}"
             ;;
         list)
             if [ -n "${2:-}" ]; then
-                echo "Error: 'airlock list' takes no arguments (did you mean 'airlock enter $2'?)" >&2
+                error "Error: 'airlock list' takes no arguments (did you mean 'airlock enter $2'?)"
                 exit 1
             fi
             devbox_list ;;
         delete|rm|remove)
             if [ -n "${3:-}" ]; then
-                echo "Error: too many arguments (expected 'airlock delete <name>')" >&2
+                error "Error: too many arguments (expected 'airlock delete <name>')"
                 exit 1
             fi
             devbox_delete "${2:-}"
@@ -1030,18 +1124,18 @@ elif [ -n "${1:-}" ]; then
             completion_cmd "${2:-}"
             ;;
         *)
-            echo "Unknown option: $1" >&2
-            echo "Usage: airlock [-h|--help] [-v|--version] [runtime] [enter <name>] [list] [delete <name>] [init] [completion <shell>]" >&2
+            error "Unknown option: $1"
+            dim "Usage: airlock [-h|--help] [-v|--version] [runtime] [enter <name>] [list] [delete <name>] [init] [completion <shell>]"
             exit 1
             ;;
     esac
 elif [ -n "$CFG_RUNTIME" ]; then
     if ! is_known_runtime "$CFG_RUNTIME"; then
-        echo "Invalid .airlock runtime: '$CFG_RUNTIME'" >&2
-        echo "Runtimes: $RUNTIMES_ALL" >&2
+        error "Invalid .airlock runtime: '$CFG_RUNTIME'"
+        error "Runtimes: $RUNTIMES_ALL"
         exit 1
     fi
-    echo "Found .airlock configuration (runtime: $CFG_RUNTIME)"
+    info "✓ Found .airlock configuration (runtime: $CFG_RUNTIME)"
     launch "$CFG_RUNTIME"
 else
     menu
