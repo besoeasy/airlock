@@ -49,7 +49,7 @@ Exit a disposable runtime and it's gone — no SDKs, compilers, or toolchains le
 - ⚙️ **Zero-Prompt Launch** — Drop a `.airlock` file in any repository to configure ports, env vars, and setup hooks.
 - 🛡️ **Rootless & Secure** — Powered by rootless Podman. Files in `/workspace` retain your host user ownership (no `root:root` locks).
 - 🔒 **SELinux Out of the Box** — Automatic `:z` volume relabeling on Fedora, RHEL, and CentOS Stream.
-- 🛑 **Fork Bomb Protection** — Hard process limits (`--pids-limit 256`) to guard against runaway scripts.
+- 🛑 **Fork Bomb Protection** — Hard process limits (`--pids-limit 1024`) to guard against runaway scripts.
 - 📦 **25 Supported Runtimes** — 10 programming languages, 6 Linux distributions, and 9 developer tools & scanners.
 
 ---

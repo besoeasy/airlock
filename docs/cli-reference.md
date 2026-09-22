@@ -66,7 +66,7 @@ Launches an instant, throwaway sandbox with your current working directory mount
   - `-v "$PWD:/workspace:z"`: Live workspace mount with SELinux `:z` label when applicable.
   - `-w /workspace`: Starts shell in workspace directory.
   - `--network host`: Direct access to host ports (or bridge if configured).
-  - `--pids-limit 256`: Prevents runaway fork bombs.
+  - `--pids-limit 1024`: Prevents runaway fork bombs.
 - **Examples:**
   ```bash
   airlock python      # Launch Python 3 sandbox with /workspace mounted

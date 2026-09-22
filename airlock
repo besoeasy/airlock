@@ -453,7 +453,7 @@ launch() {
     fi
 
     printf "%s▸ Launching '%s' sandbox...%s %s(/workspace ↔ %s)%s\n" "$C_DIM" "$name" "$C_RESET" "$C_DIM" "$PWD" "$C_RESET" >&2
-    $rt run -it --rm --pids-limit 256 "${NET_ARGS[@]}" \
+    $rt run -it --rm --pids-limit 1024 "${NET_ARGS[@]}" \
         "${user_args[@]}" \
         "${env_args[@]}" \
         -v "$vol_mount" -w /workspace \
@@ -548,7 +548,7 @@ devbox_create() {
     image=$(devbox_image_for_distro "$distro")
     shell=$(devbox_shell_for_image "$image")
     printf "%s⠋ Creating devbox '%s' [%s]...%s\n" "$C_DIM" "$name" "$distro" "$C_RESET"
-    $rt run -d --name "$B_NAME" --network host \
+    $rt run -d --name "$B_NAME" --network host --pids-limit 1024 \
         "$image" "$shell" -c 'sleep infinity'
     info "✓ Created devbox '$name' ($B_NAME) [$distro]"
 }

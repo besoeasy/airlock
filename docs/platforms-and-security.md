@@ -69,7 +69,7 @@ AIRLOCK_SELINUX=0 airlock python
 ### 3. Fork Bomb & Process Exhaustion Protection
 Untrusted dependencies or rogue recursive scripts can exhaust host PID limits. Airlock mitigates this by enforcing a hard limit on processes for all disposable containers:
 ```bash
---pids-limit 256
+--pids-limit 1024
 ```
 
 ---
