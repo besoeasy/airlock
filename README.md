@@ -18,7 +18,7 @@
 ## Table of Contents
 
 - [Key Features](#key-features)
-- [Installation](#installation)
+- [Install and Update](#install-and-update)
 - [Quick Command Cheat Sheet](#quick-command-cheat-sheet)
 - [Supported Runtimes at a Glance](#supported-runtimes-at-a-glance)
 - [Project Configuration (`.airlock`)](#project-configuration-airlock)
@@ -43,7 +43,13 @@
 
 ---
 
-## Installation
+## Install and Update
+
+The same script installs and updates Airlock — there is no auto-updater by design. Re-run it when you want to update, and review the code first, as sane Linux behaviour demands:
+
+```bash
+curl -fsSL https://cdn.jsdelivr.net/gh/besoeasy/airlock@main/install.sh | bash
+```
 
 ### One-line installer (Recommended)
 
