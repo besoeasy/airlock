@@ -110,7 +110,9 @@ show_version() {
     # Only release-stamped copies (installed via install.sh) get an update
     # verdict; dev checkouts and manual copies just report what they are.
     if [[ "$VERSION" =~ ^v?[0-9]+\.[0-9]+\.[0-9]+ ]] && [ "$latest_version" != "unavailable" ] && version_greater "$latest_version" "$VERSION"; then
-        printf "%sUpdate available:%s %s %s(re-run install.sh to update)%s\n" "$C_YELLOW$C_BOLD" "$C_RESET" "$latest_version" "$C_DIM" "$C_RESET"
+        printf "%sUpdate available:%s %s\n" "$C_YELLOW$C_BOLD" "$C_RESET" "$latest_version"
+        printf "  %sTo update, re-run the installer from GitHub:%s\n" "$C_DIM" "$C_RESET"
+        printf "  curl -fsSL https://cdn.jsdelivr.net/gh/besoeasy/airlock@main/install.sh | bash\n"
     fi
     if is_selinux_enabled; then
         printf "%sSELinux:%s enabled (:z flag active)\n" "$C_DIM" "$C_RESET"
@@ -667,7 +669,8 @@ show_header() {
     local latest_version
     latest_version=$(get_latest_version)
     if [ "$latest_version" != "unavailable" ] && version_greater "$latest_version" "$VERSION"; then
-        printf "  %sLatest:%s  %s %s(update: re-run install.sh)%s\n" "$C_DIM" "$C_RESET" "$latest_version" "$C_YELLOW" "$C_RESET"
+        printf "  %sLatest:%s  %s %s(update available)%s\n" "$C_DIM" "$C_RESET" "$latest_version" "$C_YELLOW" "$C_RESET"
+        printf "  %sTo update, re-run:%s curl -fsSL https://cdn.jsdelivr.net/gh/besoeasy/airlock@main/install.sh | bash\n" "$C_DIM" "$C_RESET"
     fi
 }
 
