@@ -17,7 +17,6 @@
 
 ## Table of Contents
 
-- [Quickstart](#quickstart)
 - [Key Features](#key-features)
 - [Installation](#installation)
 - [Quick Command Cheat Sheet](#quick-command-cheat-sheet)
@@ -28,16 +27,6 @@
 - [Use Cases](#use-cases)
 - [Contributing](#contributing)
 - [License](#license)
-
----
-
-## Quickstart
-
-```bash
-curl -fsSL https://cdn.jsdelivr.net/gh/besoeasy/airlock@main/install.sh | bash
-```
-
-Exit a disposable runtime and it's gone — no SDKs, compilers, or toolchains left behind on your host.
 
 ---
 
