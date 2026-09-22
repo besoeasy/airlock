@@ -64,6 +64,17 @@ curl -fsSL https://cdn.jsdelivr.net/gh/besoeasy/airlock@main/install.sh | sudo b
 > [!TIP]
 > Airlock requires [**Podman**](https://podman.io/). Podman is rootless and daemonless, ensuring containerized processes never run with elevated host privileges. See [Platforms & Security](docs/platforms-and-security.md) for manual distro commands, macOS, and WSL2 setups.
 
+### Run it in your project
+
+That's it — just run `airlock` in your project directory:
+
+```bash
+cd your-project
+airlock
+```
+
+Airlock auto-detects your runtime, or opens the menu to pick one.
+
 ---
 
 ## Quick Command Cheat Sheet
