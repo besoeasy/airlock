@@ -39,7 +39,7 @@
 - 🛡️ **Rootless & Secure** — Powered by rootless Podman. Files in `/workspace` retain your host user ownership (no `root:root` locks).
 - 🔒 **SELinux Out of the Box** — Automatic `:z` volume relabeling on Fedora, RHEL, and CentOS Stream.
 - 🛑 **Fork Bomb Protection** — Hard process limits (`--pids-limit 1024`) to guard against runaway scripts.
-- 📦 **25 Supported Runtimes** — 10 programming languages, 6 Linux distributions, and 9 developer tools & scanners.
+- 📦 **26 Supported Runtimes** — 10 programming languages, 7 Linux distributions, and 9 developer tools & scanners.
 
 ---
 
@@ -103,10 +103,10 @@ Airlock auto-detects your runtime, or opens the menu to pick one.
 
 ## Supported Runtimes at a Glance
 
-Airlock includes **25 pre-configured container runtimes** across 3 categories:
+Airlock includes **26 pre-configured container runtimes** across 3 categories:
 
 - **Programming Languages (10):** `bun`, `c` (`cpp`, `gcc`), `deno`, `go`, `node`, `php`, `python`, `ruby`, `rust`, `zig`
-- **Linux Distributions (6):** `alpine`, `archlinux` (`arch`), `debian`, `fedora`, `nix`, `ubuntu`
+- **Linux Distributions (7):** `alpine`, `archlinux` (`arch`), `busybox`, `debian`, `fedora`, `nix`, `ubuntu`
 - **Tools & Utilities (9):**
   - *Linters & SAST:* `hadolint`, `semgrep`, `shellcheck`
   - *Security & Secrets:* `gitleaks`, `grype`, `kali` (`kalilinux`), `nmap`, `trivy`
@@ -142,7 +142,7 @@ Detailed guides are modularized under the [`docs/`](docs/) directory:
 | Guide | Description |
 |---|---|
 | 📖 [**CLI Reference**](docs/cli-reference.md) | Complete command synopsis, argument reference table, options, and shell autocompletion. |
-| 📦 [**Supported Runtimes**](docs/runtimes.md) | Full 25-runtime catalog with container images, shell overrides, and scanner behaviors. |
+| 📦 [**Supported Runtimes**](docs/runtimes.md) | Full 26-runtime catalog with container images, shell overrides, and scanner behaviors. |
 | ⚙️ [**Project Configuration**](docs/configuration.md) | `.airlock` configuration keys, lifecycle hooks (`setup=`), shell detection, and auto-detection manifests. |
 | 🧰 [**Persistent Devboxes**](docs/devboxes.md) | Guide to long-lived containers: base OS options (Debian, Alpine, Fedora, Ubuntu, Arch), data persistence, and root privileges. |
 | 🛡️ [**Platforms & Security**](docs/platforms-and-security.md) | Host OS compatibility matrix, rootless Podman setup, SELinux automatic `:z` relabeling, macOS / WSL2 setups, and environment variables. |
@@ -173,7 +173,7 @@ Detailed guides are modularized under the [`docs/`](docs/) directory:
 - **Security & Secret Audits:** Scan repositories for CVEs, leaked secrets, and misconfigurations using Trivy, Grype, Gitleaks, and Nmap.
 - **Run AI Coding Agents:** Run OpenCode in an isolated sandbox without granting LLMs unrestricted host execution.
 - **Isolate Untrusted Dependencies:** Run `npm install`, `pip install`, or `cargo build` on untrusted repos safely.
-- **Cross-Distro Testing:** Validate bash scripts and binary packages across Alpine, Arch, Debian, Fedora, Nix, and Ubuntu.
+- **Cross-Distro Testing:** Validate bash scripts and binary packages across Alpine, Arch, BusyBox, Debian, Fedora, Nix, and Ubuntu.
 - **Clean Host Machine:** Keep your personal machine clean of global toolchains, SDKs, and temporary packages.
 
 ---

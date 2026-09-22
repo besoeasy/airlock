@@ -1,6 +1,6 @@
 # Supported Runtimes
 
-Airlock supports **25 disposable runtimes** organized into 3 distinct categories.
+Airlock supports **26 disposable runtimes** organized into 3 distinct categories.
 
 Run any runtime directly using:
 ```bash
@@ -30,7 +30,7 @@ Pre-configured development toolchains for building, running, and testing code wi
 
 ---
 
-## 2. Linux Distributions (6 Runtimes)
+## 2. Linux Distributions (7 Runtimes)
 
 Clean, minimal operating system environments for cross-distribution testing, shell scripting, package validation, and debugging.
 
@@ -38,6 +38,7 @@ Clean, minimal operating system environments for cross-distribution testing, she
 |---|---|---|---|
 | `alpine` | `docker.io/library/alpine:latest` | `sh` | Ultra-lightweight security-oriented distribution based on musl and BusyBox |
 | `archlinux` | `docker.io/library/archlinux:latest` | `arch` — `bash` | Bleeding-edge rolling release with `pacman` |
+| `busybox` | `docker.io/library/busybox:latest` | `sh` | Tiny single-binary Unix toolkit for minimal shell testing |
 | `debian` | `docker.io/library/debian:stable` | `bash` | Rock-solid stable distribution with `apt` (default Devbox OS) |
 | `fedora` | `docker.io/library/fedora:latest` | `bash` | Upstream Linux distribution featuring `dnf` |
 | `nix` | `docker.io/nixos/nix:latest` | `sh` | Purely functional package manager and reproducible environment |

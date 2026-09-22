@@ -9,7 +9,7 @@ A technical and architectural comparison between **Airlock** and [**Toolbox** (T
 | Dimension | Toolbox (Toolbx) | Airlock |
 |---|---|---|
 | **Primary Philosophy** | "Pet" container for immutable host OS | Instant, disposable sandboxes per project/runtime |
-| **Startup** | `toolbox create` with host OS image | `airlock <runtime>` — 25 ready-to-run environments |
+| **Startup** | `toolbox create` with host OS image | `airlock <runtime>` — 26 ready-to-run environments |
 | **Workspace Scope** | Mounts entire `$HOME` directory | Mounts strictly current directory at `/workspace` |
 | **Host Isolation** | Low isolation (shares host home, config, dotfiles) | High isolation (isolated filesystem, disposable container) |
 | **Runtimes** | Single distro userland | 10 languages, 6 Linux distros, 9 developer tools |
