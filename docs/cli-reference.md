@@ -21,7 +21,6 @@ airlock <command> [arguments...]
 | `enter` | `<name>` | — | Enter an existing devbox, or create a new persistent devbox (prompts for distro) |
 | `list` | — | `ls` *(menu)* | List all persistent devbox containers (`airlock-*`) and their runtime status |
 | `delete` | `<name>` | `rm`, `remove` | Permanently stop and delete a persistent devbox container and its state |
-| `init` | `[runtime]` `[-f\|--force]` | — | Generate a starter `.airlock` config file (auto-detects runtime when omitted) |
 | `completion` | `<bash\|zsh\|fish>` | — | Output shell autocompletion script to stdout |
 | `-h`, `--help` | — | — | Display help message, available commands, runtimes, and config keys |
 | `-v`, `--version` | — | — | Display version, container engine, SELinux status, active config, and check for updates |
