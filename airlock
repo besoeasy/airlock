@@ -90,7 +90,7 @@ version_greater() {
     return 1
 }
 
-# Canonical runtimes + accepted aliases (single source for help, init, completions).
+# Canonical runtimes + accepted aliases (single source for help and completions).
 RUNTIMES_ALL="alpine arch archlinux bun busybox c cpp gcc debian deno fedora gitleaks go grype hadolint kali kalilinux nix node nmap opencode php python ruby rust semgrep shellcheck trivy ubuntu zig"
 
 is_known_runtime() {
