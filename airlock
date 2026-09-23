@@ -974,7 +974,6 @@ show_help() {
     echo "  -v, --version  Show version"
     echo
     printf "%sCommands:%s\n" "$C_BOLD$C_CYAN" "$C_RESET"
-    printf "  %sinit%s [runtime]       Create a starter .airlock file (auto-detects when omitted)\n" "$C_GREEN" "$C_RESET"
     printf "  %scompletion%s <shell>   Print completion script (bash, zsh, fish)\n" "$C_GREEN" "$C_RESET"
     printf "  %senter%s <name>         Enter a persistent box (asks OS when creating a new one)\n" "$C_GREEN" "$C_RESET"
     echo "  list                 List all persistent boxes"
