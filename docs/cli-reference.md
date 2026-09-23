@@ -146,42 +146,9 @@ Permanently stops and removes a persistent devbox container and deletes its inte
 
 ---
 
-### 6. Project Configuration: `airlock init [runtime] [-f|--force]`
-
-```bash
-airlock init [runtime] [-f|--force]
-```
-
-Generates a starter `.airlock` configuration file in the current working directory, enabling zero-prompt launches.
-
-- **Arguments & Flags:**
-  - `[runtime]`: *(Optional)* The container runtime to configure (e.g. `node`, `python`, `rust`).
-    - *When omitted:* Airlock automatically inspects project manifests:
-      - `package.json` &rarr; `node`
-      - `Cargo.toml` &rarr; `rust`
-      - `go.mod` &rarr; `go`
-      - `pyproject.toml`, `requirements.txt`, `.python-version` &rarr; `python`
-      - `deno.json`, `deno.jsonc` &rarr; `deno`
-      - `bun.lockb`, `bunfig.toml` &rarr; `bun`
-      - `composer.json` &rarr; `php`
-      - `Gemfile` &rarr; `ruby`
-      - `build.zig`, `build.zig.zon` &rarr; `zig`
-      - `Makefile`, `CMakeLists.txt` &rarr; `c`
-      - If no recognized manifest is found, Airlock prompts for the runtime interactively.
-  - `-f`, `--force`: Overwrite an existing `.airlock` file without prompting or exiting with an error.
-  - `-h`, `--help`: Display usage and options for the `init` command.
-- **Examples:**
-  ```bash
-  airlock init             # Auto-detect project runtime and generate .airlock
-  airlock init python      # Explicitly generate .airlock for Python
-  airlock init go --force  # Overwrite existing .airlock with Go configuration
-  ```
-
-See [Project Configuration (`.airlock`)](configuration.md) for full configuration file documentation.
-
 ---
 
-### 7. Shell Autocompletion: `airlock completion <shell>`
+### 6. Shell Autocompletion: `airlock completion <shell>`
 
 ```bash
 airlock completion <bash|zsh|fish>
