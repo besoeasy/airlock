@@ -6,34 +6,23 @@ When a `.airlock` file is present in your current directory, running `airlock` a
 
 ---
 
-## Quick Generation: `airlock init`
+## Creating a Configuration
 
-You can generate a starter configuration file using `airlock init`:
+Create a `.airlock` file in the root of your project. Only the runtime is required:
 
-```bash
-airlock init          # Auto-detects runtime from project files
-airlock init node     # Explicitly configure for Node.js
-airlock init --force  # Overwrite existing .airlock
+```ini
+# .airlock
+runtime=node
+
+# Optional settings
+# ports=3000 8080
+# network=host
+# env=NODE_ENV=development
+# setup=npm install
+# shell=bash
 ```
 
-### Auto-Detection Manifests
-
-When run without a runtime argument, `airlock init` inspects your directory for known project manifests:
-
-| Project Manifest | Detected Runtime |
-|---|---|
-| `package.json` | `node` |
-| `Cargo.toml` | `rust` |
-| `go.mod` | `go` |
-| `pyproject.toml`, `requirements.txt`, `.python-version` | `python` |
-| `deno.json`, `deno.jsonc` | `deno` |
-| `bun.lockb`, `bunfig.toml` | `bun` |
-| `composer.json` | `php` |
-| `Gemfile` | `ruby` |
-| `build.zig`, `build.zig.zon` | `zig` |
-| `Makefile`, `CMakeLists.txt` | `c` |
-
-If no recognized file is found and the terminal is interactive, `airlock init` prompts you for a runtime name.
+Airlock reads the file whenever you run `airlock` from that directory. The supported keys are listed below.
 
 ---
 
