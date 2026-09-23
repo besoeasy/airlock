@@ -1042,16 +1042,12 @@ elif [ -n "${1:-}" ]; then
             fi
             devbox_delete "${2:-}"
             ;;
-        init)
-            shift
-            init_cmd "$@"
-            ;;
         completion)
             completion_cmd "${2:-}"
             ;;
         *)
             error "Unknown option: $1"
-            dim "Usage: airlock [-h|--help] [-v|--version] [runtime] [enter <name>] [list] [delete <name>] [init] [completion <shell>]"
+            dim "Usage: airlock [-h|--help] [-v|--version] [runtime] [enter <name>] [list] [delete <name>] [completion <shell>]"
             exit 1
             ;;
     esac
