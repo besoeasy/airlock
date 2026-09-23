@@ -13,7 +13,7 @@ A technical and architectural comparison between **Airlock** and [**Toolbox** (T
 | **Workspace Scope** | Mounts entire `$HOME` directory | Mounts strictly current directory at `/workspace` |
 | **Host Isolation** | Low isolation (shares host home, config, dotfiles) | High isolation (isolated filesystem, disposable container) |
 | **Runtimes** | Single distro userland | 10 languages, 6 Linux distros, 9 developer tools |
-| **Per-Project Config** | None (manual tool configuration) | Declarative `.airlock` file + `airlock init` |
+| **Per-Project Config** | None (manual tool configuration) | Declarative `.airlock` file |
 | **Cleanup** | Manual state accumulation | Automatic disposal on exit (`--rm`) |
 | **Long-Lived State** | Always persistent | Opt-in via `airlock enter <name>` devboxes |
 | **Engine & Platforms** | Podman, Linux-centric | Podman everywhere; verified on Linux, macOS, WSL2 |
