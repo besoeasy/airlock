@@ -44,7 +44,7 @@ A `.airlock` file uses key-value syntax (`key=value`). Blank lines and comments 
 | Key | Description | Example | Default |
 |---|---|---|---|
 | `runtime` | Target container runtime | `runtime=node` | Prompt / None |
-| `ports` | Space-separated port mappings (`host:container` or `port`) | `ports=3000 8080:80` | None |
+| `ports` | Space-separated ports exposed on the same host and container port (e.g. `3000` maps `3000:3000`; values must be 1-65535) | `ports=3000 8080` | None |
 | `network` | Container network mode (`host`, `bridge`, `none`) | `network=host` | `host` |
 | `user` | Container user & group override (`UID:GID` or `username`) | `user=1000:1000` | Container default |
 | `env` | Environment variable (*repeatable*) | `env=NODE_ENV=development` | None |
