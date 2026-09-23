@@ -173,7 +173,7 @@ Generates ready-to-use shell completion scripts to standard output, enabling tab
 
 ---
 
-### 8. Global Flags
+### 7. Global Flags
 
 #### Help: `airlock -h` / `airlock --help`
 
