@@ -33,12 +33,11 @@ The installer adds `airlock` to your `PATH` and installs Podman when needed. Re-
 
 ## Usage
 
-Launch a runtime or scan your project:
+Launch an environment for your project:
 
 ```bash
 cd my-project
-airlock node
-airlock gitleaks
+airlock
 ```
 
 With no `.airlock` file, running `airlock` opens an interactive menu where you can choose a runtime instead.
