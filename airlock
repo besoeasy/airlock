@@ -901,10 +901,7 @@ _airlock_completions() {
     runtimes="$RUNTIMES_ALL"
     case "\$prev" in
         airlock)
-            COMPREPLY=( \$(compgen -W "\$runtimes enter list delete init completion -h --help -v --version" -- "\$cur") )
-            ;;
-        init)
-            COMPREPLY=( \$(compgen -W "\$runtimes" -- "\$cur") )
+            COMPREPLY=( \$(compgen -W "\$runtimes enter list delete completion -h --help -v --version" -- "\$cur") )
             ;;
         completion)
             COMPREPLY=( \$(compgen -W "bash zsh fish" -- "\$cur") )
@@ -928,12 +925,11 @@ _airlock() {
         '*: :->args' && return 0
     case \$state in
         cmd)
-            _describe 'command' 'runtimes:run a runtime enter:enter-box list:list-boxes delete:delete-box init:create-.airlock completion:print-completion -h:help --help:help -v:version --version:version' && return 0
+            _describe 'command' 'runtimes:run a runtime enter:enter-box list:list-boxes delete:delete-box completion:print-completion -h:help --help:help -v:version --version:version' && return 0
             _describe 'runtime' runtimes && return 0
             ;;
         args)
             case \$words[2] in
-                init) _describe 'runtime' runtimes && return 0 ;;
                 completion) _describe 'shell' 'bash:bash zsh:zsh fish:fish' && return 0 ;;
             esac
             ;;
@@ -953,11 +949,9 @@ complete -c airlock -n __fish_use_subcommand -a "$runtimes" -d 'runtime'
 complete -c airlock -n __fish_use_subcommand -a enter -d 'enter a persistent box'
 complete -c airlock -n __fish_use_subcommand -a list -d 'list persistent boxes'
 complete -c airlock -n __fish_use_subcommand -a delete -d 'delete a persistent box'
-complete -c airlock -n __fish_use_subcommand -a init -d 'create .airlock'
 complete -c airlock -n __fish_use_subcommand -a completion -d 'print completion'
 complete -c airlock -n __fish_use_subcommand -s h -l help -d 'show help'
 complete -c airlock -n __fish_use_subcommand -s v -l version -d 'show version'
-complete -c airlock -n '__fish_seen_subcommand_from init' -a "\$runtimes"
 complete -c airlock -n '__fish_seen_subcommand_from completion' -a 'bash zsh fish'
 EOF
 }
