@@ -33,12 +33,12 @@ The installer adds `airlock` to your `PATH` and installs Podman when needed. Re-
 
 ## Usage
 
-Create a project configuration, then launch it:
+Launch a runtime or scan your project:
 
 ```bash
 cd my-project
-airlock init node
-airlock
+airlock node
+airlock gitleaks
 ```
 
 With no `.airlock` file, running `airlock` opens an interactive menu where you can choose a runtime instead.
@@ -65,7 +65,7 @@ Airlock gives you a clean environment on demand: launch the tools you need, keep
 |---|---|
 | [CLI Reference](docs/cli-reference.md) | Commands, options, aliases, examples, and shell completions |
 | [Supported Runtimes](docs/runtimes.md) | Available languages, distributions, tools, and scanner behavior |
-| [Project Configuration](docs/configuration.md) | `.airlock` keys, lifecycle hooks, and runtime auto-detection |
+| [Project Configuration](docs/configuration.md) | `.airlock` keys, lifecycle hooks, and port configuration |
 | [Persistent Devboxes](docs/devboxes.md) | Creating, entering, listing, and deleting long-lived environments |
 | [Platforms & Security](docs/platforms-and-security.md) | Host support, Podman setup, SELinux, macOS, and WSL2 |
 | [Airlock vs Toolbox](docs/airlock-vs-toolbox.md) | Comparing disposable and persistent container workflows |
