@@ -146,8 +146,6 @@ Permanently stops and removes a persistent devbox container and deletes its inte
 
 ---
 
----
-
 ### 6. Shell Autocompletion: `airlock completion <shell>`
 
 ```bash
