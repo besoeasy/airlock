@@ -125,8 +125,14 @@ else
 fi
 
 # 5. Check PATH if installed to ~/.local/bin
+# Airlock is already installed at this point, so the rc edit is strictly
+# best-effort: a missing, read-only, or otherwise unwritable rc file must not
+# abort the installer and must not skip the Podman step below. Failures are
+# reported at the end together with the exact line to add by hand.
 PATH_UPDATED=false
+PATH_RC_FAILED=false
 SHELL_RC=""
+RC_LINE=""
 if [ "$TARGET_DIR" = "$HOME/.local/bin" ] && [[ ":$PATH:" != *":$HOME/.local/bin:"* ]]; then
     SHELL_NAME="$(basename "${SHELL:-bash}")"
     case "$SHELL_NAME" in
@@ -155,14 +161,24 @@ if [ "$TARGET_DIR" = "$HOME/.local/bin" ] && [[ ":$PATH:" != *":$HOME/.local/bin
     esac
 
     if [ "$SHELL_NAME" = "fish" ]; then
-        mkdir -p "$HOME/.config/fish"
-        if ! grep -qs 'fish_add_path.*\.local/bin' "$SHELL_RC" 2>/dev/null; then
-            echo 'fish_add_path $HOME/.local/bin' >> "$SHELL_RC"
-            PATH_UPDATED=true
-        fi
+        RC_LINE='fish_add_path $HOME/.local/bin'
+        RC_MATCH='fish_add_path.*\.local/bin'
     else
-        if ! grep -qs 'PATH=.*\.local/bin' "$SHELL_RC" 2>/dev/null; then
-            echo 'export PATH="$HOME/.local/bin:$PATH"' >> "$SHELL_RC"
+        RC_LINE='export PATH="$HOME/.local/bin:$PATH"'
+        RC_MATCH='PATH=.*\.local/bin'
+    fi
+
+    # Only uncommented lines count, so a commented-out entry does not
+    # suppress the real one. A missing rc file is not an error here: it is
+    # simply not configured yet.
+    if ! grep -v '^[[:space:]]*#' "$SHELL_RC" 2>/dev/null | grep -qsE "$RC_MATCH"; then
+        if ! mkdir -p "$(dirname "$SHELL_RC")" 2>/dev/null; then
+            PATH_RC_FAILED=true
+        elif [ -e "$SHELL_RC" ] && [ ! -w "$SHELL_RC" ]; then
+            PATH_RC_FAILED=true
+        elif ! printf '%s\n' "$RC_LINE" 2>/dev/null >> "$SHELL_RC"; then
+            PATH_RC_FAILED=true
+        else
             PATH_UPDATED=true
         fi
     fi
@@ -275,8 +291,13 @@ if [ "$PATH_UPDATED" = true ]; then
     echo
     echo "Notice: Added ~/.local/bin to ${SHELL_RC}"
     echo "To use 'airlock' immediately in your current terminal session, run:"
-    echo "  export PATH=\"\$HOME/.local/bin:\$PATH\""
+    echo "  ${RC_LINE}"
     echo "Or start a new terminal session."
+elif [ "$PATH_RC_FAILED" = true ]; then
+    echo
+    echo "Notice: Could not update ${SHELL_RC}, so ~/.local/bin is not on your PATH yet."
+    echo "Airlock is installed. Add this line to ${SHELL_RC} to finish setup:"
+    echo "  ${RC_LINE}"
 else
     echo
     echo "Run 'airlock' to get started."
