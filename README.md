@@ -68,3 +68,13 @@ Airlock gives you a clean environment on demand: launch the tools you need, keep
 | [Persistent Devboxes](docs/devboxes.md) | Creating, entering, listing, and deleting long-lived environments |
 | [Platforms & Security](docs/platforms-and-security.md) | Host support, Podman setup, SELinux, macOS, and WSL2 |
 | [Airlock vs Toolbox](docs/airlock-vs-toolbox.md) | Comparing disposable and persistent container workflows |
+
+## Star History
+
+<a href="https://www.star-history.com/?repos=besoeasy%2Fairlock&type=date&legend=top-left">
+ <picture>
+   <source media="(prefers-color-scheme: dark)" srcset="https://api.star-history.com/chart?repos=besoeasy/airlock&type=date&theme=dark&legend=top-left" />
+   <source media="(prefers-color-scheme: light)" srcset="https://api.star-history.com/chart?repos=besoeasy/airlock&type=date&legend=top-left" />
+   <img alt="Star History Chart" src="https://api.star-history.com/chart?repos=besoeasy/airlock&type=date&legend=top-left" />
+ </picture>
+</a>

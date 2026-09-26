@@ -261,9 +261,9 @@ fi
 # 7. Print completion message
 echo
 if [ "$IS_UPDATE" = true ]; then
-    echo "✓ Airlock successfully updated at ${TARGET_BIN}"
+    echo "Airlock successfully updated at ${TARGET_BIN}"
 else
-    echo "✓ Airlock successfully installed at ${TARGET_BIN}"
+    echo "Airlock successfully installed at ${TARGET_BIN}"
 fi
 
 if [ -n "$CONTAINER_MSG" ]; then
