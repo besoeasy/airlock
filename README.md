@@ -13,6 +13,7 @@
   <a href="https://github.com/besoeasy/airlock/releases"><img alt="Latest release" src="https://img.shields.io/github/v/release/besoeasy/airlock"></a>
   <a href="https://github.com/besoeasy/airlock/stargazers"><img alt="GitHub stars" src="https://img.shields.io/github/stars/besoeasy/airlock"></a>
   <a href="https://github.com/besoeasy/airlock/commits/main"><img alt="Last commit" src="https://img.shields.io/github/last-commit/besoeasy/airlock"></a>
+  <a href="https://www.star-history.com/besoeasy/airlock"><img alt="Star History Rank" src="https://api.star-history.com/badge?repo=besoeasy/airlock&type=rank"></a>
 </p>
 
 ## Introduction
